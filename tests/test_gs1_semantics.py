@@ -36,6 +36,8 @@ def resolution():
 
 
 def _run(text, doc, resolution=None):
+    """测试侧可以自己取口径（判定模块则必须接收装载好的对象）。"""
+    resolution = resolution or vectors.load_century_resolution()
     parsed, issues = elements.parse(text, doc)
     return validators.validate_element_string(doc, issues, parsed, resolution)
 

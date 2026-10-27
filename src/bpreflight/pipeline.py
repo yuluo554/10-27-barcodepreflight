@@ -85,7 +85,7 @@ def _module_skips(payload):
     return skips
 
 
-def _run_m1(payload, doc):
+def _run_m1(payload, doc, resolution):
     """数据层判定。返回 `(findings, skipped, judged)`。
 
     `judged` 为 False 表示输入里没有任何数据层可判的面——调用方据此决定是否
@@ -100,7 +100,7 @@ def _run_m1(payload, doc):
 
     if element_string is not None:
         parsed, issues = elements_mod.parse(element_string, doc)
-        result = validators_mod.validate_element_string(doc, issues, parsed)
+        result = validators_mod.validate_element_string(doc, issues, parsed, resolution)
         findings.extend(result.findings)
         skipped.extend(result.skipped)
         # M1 DoD：同一批向量没有交给官方 gs1-syntax-engine 对照过，就如实登记。
@@ -155,12 +155,13 @@ def run(payload, input_info, strict_thresholds=False, with_timestamp=False):
     """
     book = thresholds.load_book()
     doc = dictionary_mod.load()
+    resolution = vectors_mod.load_century_resolution()
 
     findings = []
     skipped = []
     warnings = []
 
-    m1_findings, m1_skipped, judged = _run_m1(payload, doc)
+    m1_findings, m1_skipped, judged = _run_m1(payload, doc, resolution)
     findings.extend(m1_findings)
     skipped.extend(m1_skipped)
     if not judged:

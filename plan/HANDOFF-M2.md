@@ -38,13 +38,19 @@ M1 已完成并验证（**本地等价校验，未接远端，CI 待首推验证
    **M2 落地时要改三处**：`pipeline.IMPLEMENTED_MODULES`（加 `"M2"`）、`_module_skips`
    里删掉 M2 那一支、并同步改 `test_unimplemented_modules_are_announced_not_silent`
    （断言只剩 M3）。
-3. **阈值只能从 `bpreflight/thresholds.py` 装载器读**：它是唯一读 `data/vectors/quiet_zone.json`
-   与 `gen_spec.json` 的地方。`data/vectors/gs1_vectors.json`（M1 的向量）**不走它**，由
-   `src/bpreflight/gs1/vectors.py` 单点读取——两个文件族别混。判定模块**接收装载好的对象**，
-   不自己 `open()`。`tools/check_thresholds.py` 会拦 `src/` 里的裸数值常量（允许集见
-   `ALLOWED_NUMBERS`，登记表 `REGISTERED` 目前仍是**空表**，请保持空）。
-   本棒实测踩过的坑：写 `value[0:2]` / `value[4:6]` 这类**日期切片宽度**会被该门判红
-   （`6` 不在允许集里）——改成从 `yy_mm_dd` 宽度常量推导后自然消失。
+3. **数据读取点一共三处，判定模块一处都不许有**（`plan/HANDOFF-M1` §二.3）：
+   - `bpreflight/thresholds.py` —— 印刷阈值（`quiet_zone.json` / `gen_spec.json`）；
+   - `bpreflight/gs1/dictionary.py` —— 字典正文 + `dict_manifest.json`（装载并复算摘要）；
+   - `bpreflight/gs1/vectors.py` —— `data/vectors/gs1_vectors.json`（M1 向量与口径）。
+   **判定模块接收装载好的对象**：`validators.validate_element_string(doc, issues, elements,
+   resolution)` 的 `doc` 与 `resolution` 都是入参，函数体里没有 `open()` / `load()`。
+   本棒踩过的坑（两处，都已修）：① `_check_date` 里给 `resolution=None` 兜底并现场
+   `load_century_resolution()`；② `_check_parse_issues` 里现取 `dict_version()`。两处都会让
+   "判定模块自己读文件"这条结构性质变成口头约定。
+   `tools/check_thresholds.py` 会拦 `src/` 里的裸数值常量（允许集见 `ALLOWED_NUMBERS`，
+   登记表 `REGISTERED` 目前仍是**空表**，请保持空）。另一个坑：写 `value[0:2]` /
+   `value[4:6]` 这类**日期切片宽度**会被该门判红（`6` 不在允许集里）——改成从
+   `yy_mm_dd` 宽度常量推导后自然消失。
 4. **校验位只有一份实现**：`src/bpreflight/gs1/checksum.py::gs1_check_digit`。
    M2 要判符号校验位时**只能 import**。`tests/test_checksum.py::test_only_one_check_digit_implementation`
    同时扫 AST 与文本，复制第二份立刻红。

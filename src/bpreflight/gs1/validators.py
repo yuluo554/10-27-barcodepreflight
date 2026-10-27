@@ -90,7 +90,11 @@ class ValidationResult(object):
 
 
 def dict_version():
-    """Identity of the table the report names (`dict_version`)."""
+    """Identity of the table the report names (`dict_version`) —— 供报告与证据文案用。
+
+    Reading the manifest is *loader* work; the judgement path receives the loaded
+    `Dictionary` (`doc.dict_version`) instead of calling this.
+    """
     from bpreflight.gs1 import dictionary as dictionary_mod
 
     return dictionary_mod.load_manifest()["dict_version"]
@@ -376,10 +380,7 @@ def _check_csum(aid, index, text, position, evidence, result):
     )
 
 
-def _check_date(aid, index, kind, text, position, evidence, result, resolution=None):
-    from bpreflight.gs1 import vectors as vectors_mod
-
-    resolution = resolution or vectors_mod.load_century_resolution()
+def _check_date(aid, index, kind, text, position, evidence, result, resolution):
     status, normalized, detail = resolve_date(text, kind, resolution)
     if status == "ok":
         return
@@ -469,7 +470,7 @@ def _check_presence(elements, result):
                 )
 
 
-def _check_parse_issues(issues, result):
+def _check_parse_issues(issues, result, dict_version_text):
     """Unknown AIs and unsplittable strings.
 
     An unknown AI is a data error (`unknown_ai`). A string we cannot split at
@@ -483,7 +484,7 @@ def _check_parse_issues(issues, result):
                     "unknown_ai",
                     sev.ERROR,
                     "AI {!r} is not in the bundled dictionary ({})".format(
-                        issue.ai, dict_version()
+                        issue.ai, dict_version_text
                     ),
                     "ai:{}:unknown".format(issue.ai or "?"),
                     issue.position,
@@ -600,18 +601,19 @@ def validate_identifier(identifier, identifier_lengths):
     return ValidationResult(findings, skipped)
 
 
-def validate_element_string(doc, parse_issues, elements, resolution=None):
+def validate_element_string(doc, parse_issues, elements, resolution):
     """Run every M1 check over a parsed element string.
 
     Takes the **parsed** elements rather than the raw text: splitting is
     `elements.py`'s job, and doing it twice is how "the parser and the
     validator disagree" bugs start.
-    """
-    from bpreflight.gs1 import vectors as vectors_mod
 
-    resolution = resolution or vectors_mod.load_century_resolution()
+    `doc` (loaded `Dictionary`) and `resolution` (loaded century window) are
+    passed in — a judgement module must never open a data file itself
+    (`plan/HANDOFF-M1` §二.3 keeps the reading points countable).
+    """
     result = ValidationResult([], [])
-    _check_parse_issues(parse_issues, result)
+    _check_parse_issues(parse_issues, result, doc.dict_version)
     for element in elements:
         _check_structure(element, result, resolution)
     if elements:
