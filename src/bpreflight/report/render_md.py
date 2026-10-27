@@ -29,6 +29,17 @@ def _fix_line(finding):
     return kind
 
 
+def _checksum_line(checksum):
+    parts = [str(checksum.get("kind", "none"))]
+    if checksum.get("value") is not None:
+        parts.append("value=" + str(checksum["value"]))
+    if checksum.get("appended"):
+        parts.append("appended")
+    if checksum.get("verified"):
+        parts.append("verified")
+    return " ".join(parts)
+
+
 def render_md(report):
     """返回 (text, filename_hint)。"""
     summary = report.summary
@@ -79,6 +90,32 @@ def render_md(report):
                 "  - evidence: `{}` {}".format(evidence.get("kind"), evidence.get("ref"))
             )
             lines.append("  - fingerprint: `{}`".format(finding.fingerprint))
+
+    # M2 的 encoding plan（只在可编码时存在）；纯排版，不重算任何判定。
+    if report.encoding_plan is not None:
+        plan = report.encoding_plan
+        lines.append("")
+        lines.append("## Encoding plan")
+        lines.append("")
+        lines.append("- `symbol`: {}".format(plan.get("symbol")))
+        lines.append("- `mode`: {}".format(plan.get("mode")))
+        lines.append("- `total_modules`: {}".format(plan.get("total_modules")))
+        lines.append("- `tie_break`: {}".format(plan.get("tie_break")))
+        lines.append("- `checksum`: {}".format(_checksum_line(plan.get("checksum") or {})))
+        for segment in plan.get("segments", []):
+            units = []
+            if "codewords" in segment:
+                units.append("codewords={}".format(segment["codewords"]))
+            if "bits" in segment:
+                units.append("bits={}".format(segment["bits"]))
+            lines.append(
+                "- segment `{}`: {} char(s) {} text={!r}".format(
+                    segment.get("mode"),
+                    segment.get("characters"),
+                    " ".join(units),
+                    segment.get("text"),
+                )
+            )
 
     lines.append("")
     lines.append("## Input")

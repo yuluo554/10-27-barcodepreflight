@@ -415,6 +415,11 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 ```
 
 - **`findings` 的 `id` 是稳定标识符**（改语义即改 `id`，不许悄悄改判定）。
+- **`encoding_plan`（M2）**：只在数据**可编码进目标符号**时出现：
+  `{symbol, mode, segments[], total_modules, checksum, tie_break, profile_version}`。
+  不可编码时**不输出半个计划**，原因在 `findings` 里（见 §8.10）。
+- **`tools` 身份**：`dict_version` / `dict_sha256`（M1 字典）与
+  `symbol_profiles_version` / `symbol_profiles_sha256`（M2 规则表）都可独立复算。
 - `fingerprint = sha256(f"{id}\x1f{module}\x1f{canonical_target}").hexdigest()[:16]`，**不含**时间戳/路径/机器名，用于跨 run diff。
 - 报告**默认无时间戳**（确定性优先）；`--with-timestamp` 时显式标注"非确定性导出"。
 - 报告**不含**任何网络请求结果、不含用户主目录绝对路径（写相对路径或脱敏路径）。
@@ -457,6 +462,36 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 - **gray 的唯一合法表达** = `threshold_status` / `skipped` / `severity` 降级**三者之一**，而**不是** `verdict` 的第四个值。
 - **禁止"用 `pass` 表示不知道"**：G1–G6 任一触发时，该条目不得以 `ok`/`pass` 形式出现。
 
+### 8.10 符号可行性（M2）
+
+- **判据三段，全部数据驱动**（`src/bpreflight/data/vectors/symbol_profiles.json`）：
+  ① **字符集 ⊆**：数据里每个字符都在该符号某个模式的字符集里；
+  ② **长度 ∈**：定长符号必须精确匹配（**含校验位**），变长符号必须落在 `[min, max]`；
+  ③ **模式可覆盖**：字符集 / 分组宽度 / 优先级决定切分。
+- **切分唯一**：从前往后贪心取最长可覆盖段；同长时按数据文件里的 `priority`，再按模式名。
+  `tie_break: "longest-first"` 写进 `encoding_plan`，不是隐含约定。
+- **`encoding_plan`**：`{symbol, mode, segments[], total_modules, checksum, tie_break,
+  profile_version}`。`mode` 单段时是模式名、多段时为 `mixed`；`segments` 的 `text`
+  顺序拼接必须等于被编码的字符流（元素串按 `AI+value` 重建，变长字段后跟 FNC1）。
+- **`(01)` 与零售符号**：AI 01 是 GTIN-14；零售形态 = 去掉固定的前导零
+  （GTIN-13 去 1 位、GTIN-12 去 2 位、GTIN-8 去 6 位）。前导位必须**真的是零**，
+  否则那是另一个 GTIN（结构原因）。**禁止**把"不可"写成"国家前缀不兼容"——
+  前缀归属要 GEPIR 联网授权，属非目标。
+- **未核纪律**：本轮没有取到任何符号规范原文，`symbol_profiles.json` 的每条规则都是
+  `status: "unverified"`。由未核规则派生的 `error` 级判定默认降为 `warn` 并标
+  `threshold_status: "unverified"`；`--strict-thresholds` 恢复 `error`。
+  **不得**把这些值写成规范要求。
+- **校验位不复制**：`encoding_plan.checksum` 的 GS1 值由 `gs1/checksum.py` 复核
+  （`verified: true` = 用单一实现验过）；`mod103` / `mod43` / Reed–Solomon 只在数据文件里
+  记名字，**M2 不实现**（由编码器负责）。
+- **不可判通道**：没给 `symbol` → `skipped: symbol_not_specified`；元素串解析不出元素 →
+  `skipped: symbol_data_unparsed`；GS1 数据 + 2D 符号的 FNC1 首位置**未建模** →
+  `skipped: gs1_2d_fnc1_not_modelled`。三者都**不是** `pass`。
+- **finding id（M2）**：`symbol_charset_violation` / `symbol_length_mismatch` /
+  `capacity_exceeded` / `symbol_structure_mismatch` / `gs1_data_missing_fnc1`
+  （error 基线）；`mode_switch_required`（info）。`target = symbol:<symbol>:<scope>`。
+  `checksum_mismatch` **不产出**：校验位由 M1 的 `invalid_csum` 判，M2 不重复第二份。
+
 ---
 
 ## 九、未核对项清单（⬜ / ⚠️，不得当已验证）
@@ -468,7 +503,7 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | 3 | 零售 POS 放大率区间 80%–200% | ⚠️ | 仅 BarStripeLab 源码（1★）见到 |
 | 4 | 名义 X = 0.330 mm、条高 22.85 mm | ⚠️ | 二手；须核 GenSpec 原表 |
 | 5 | `yymmd0` 在 11/13/15/17 四类日期上的逐条适用性 | ✅ **M1 已核对** | 以字典原文行逐条确认（实为 8 条：11/12/13/15/16/17/4324/4325，见 §3）；同族 `yymmdd` 6 条、`yyyymmdd` 2 条另计 |
-| 6 | 各符号的容量/模式切换表（Code 128 子集 C 边界、Data Matrix 尺寸档、QR 纠错等级） | ⚠️ | 本轮未取规范原文；M2 按"符号 profile 数据文件 + 官方编码器交叉验证"实现，不手抄容量表 |
+| 6 | 各符号的容量/模式切换表 | ⚠️ **M2 已落库但全部 `unverified`** | 规范原文仍 403；`symbol_profiles.json` 每条规则带 `source`/`status`/`verified_at`，未核规则派生的判定降级为 `warn`（§8.10）；官方编码器交叉验证未做 |
 | 7 | zxing-cpp 本机可用性 | ⬜ | 本机未验证；M5 缺失时标 `skipped: oracle_absent` |
 | 8 | StackOverflow 正文页 | ⚠️ | 本轮取到检索摘要，未逐页直取正文 |
 | 9 | en.wikipedia.org / Google / DuckDuckGo | ⬜ | 000 超时 |

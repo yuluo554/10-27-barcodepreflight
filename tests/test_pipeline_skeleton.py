@@ -93,9 +93,14 @@ def test_input_incomplete_finding_has_actionable_fix():
 
 
 def test_unimplemented_modules_are_announced_not_silent():
-    """M2/M3 未落地：报告必须把这件事标出来（`skipped`），不能让人读成"全都判过了"。"""
+    """M3 未落地：报告必须把这件事标出来（`skipped`）。
+
+    M2 已落地，所以 `module_not_implemented:M2` 必须消失——否则"模块已实现"这条
+    事实在报告里是反的。M2 的"不判"由更具体的 skipped 值表达
+    （`symbol_not_specified` / `symbol_data_unparsed`）。
+    """
     report = pipeline.run(_payload(), {"file": "spec.json"})
-    assert "module_not_implemented:M2" in report.skipped
+    assert "module_not_implemented:M2" not in report.skipped
     assert "module_not_implemented:M3" in report.skipped
 
 

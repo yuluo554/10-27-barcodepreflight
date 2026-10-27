@@ -183,6 +183,7 @@ class Report(object):
         strict_thresholds=False,
         deterministic=True,
         warnings=None,
+        encoding_plan=None,
     ):
         ordered = sorted(findings, key=lambda f: f.sort_key)
         self.findings = tuple(ordered)
@@ -193,6 +194,8 @@ class Report(object):
         self.deterministic = bool(deterministic)
         #: 报告首屏提示（如 `THRESHOLDS: unverified (quiet_zone.modules_min)`）。
         self.warnings = tuple(warnings or ())
+        #: M2 的 `encoding_plan`。只在"可编码"时存在；不可编码时由 findings 说原因。
+        self.encoding_plan = dict(encoding_plan) if encoding_plan is not None else None
 
     @property
     def summary(self):
@@ -224,7 +227,7 @@ class Report(object):
         return None
 
     def to_dict(self):
-        return {
+        out = {
             "schema": SCHEMA,
             "input": dict(self.input),
             "tools": dict(self.tools),
@@ -236,3 +239,7 @@ class Report(object):
             "summary": self.summary,
             "verdict": self.verdict,
         }
+        # M2 的 plan 只在"可编码"时出现；不可编码时 findings 说原因（不输出半个计划）。
+        if self.encoding_plan is not None:
+            out["encoding_plan"] = dict(self.encoding_plan)
+        return out

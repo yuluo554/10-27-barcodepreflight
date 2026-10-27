@@ -1,0 +1,625 @@
+{
+  "schema": "bpreflight/symbol_profiles/1",
+  "version": "symbol-profiles@2026-10-27-draft1",
+  "tie_break": "longest-first",
+  "note": "M2 符号层数据基座：字符集 / 容量 / 模式切换全部是数据，代码只做「字符集 ⊆ / 长度 ∈ / 模式可覆盖」三段判定。本轮没有取得任何符号规范原文（iso.org / gs1.org 403，2026-10-27），因此每条规则的 status 一律 unverified、verified_at 为 null；由未核规则派生的 finding 默认降级为 warn（--strict-thresholds 恢复 error）。任何文档都不得把这些值写成规范要求。",
+  "sources": {
+    "placeholder-spec": "placeholder: 符号规范原文本轮未取得（iso.org / gs1.org 403，2026-10-27）；值为通用工程知识，落地前须核对",
+    "placeholder-capacity": "placeholder: 容量 / 尺寸档表未与 ISO/IEC 18004（QR）/ 16022（Data Matrix）核对（iso.org 403，2026-10-27）",
+    "official-vector": "data/README.md §4.2 官方样本（只校准长度与校验位，不校准容量表）",
+    "gs1-dictionary": "gs1-syntax-dictionary @c63d8a12210d（AI 01 = N14,csum；元素串的 AI 定长与 FNC1 分隔规则以字典为准）"
+  },
+  "symbols": {
+    "code128": {
+      "family": "linear",
+      "data_shape": "raw",
+      "identifier_ai": null,
+      "gs1": {
+        "mode": "requires-fnc1-flag",
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "subset-a": {
+          "ranges": [[0, 95]],
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "subset-b": {
+          "ranges": [[32, 127]],
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "subset-c": {
+          "characters": "0123456789",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "range",
+        "min": 1,
+        "max": 80,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "A",
+          "charset": "subset-a",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 3,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "B",
+          "charset": "subset-b",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 2,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "C",
+          "charset": "subset-c",
+          "group_size": 2,
+          "min_run": 2,
+          "requires_full_groups": true,
+          "priority": 1,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "code128",
+        "start_modules": 11,
+        "modules_per_codeword": 11,
+        "check_modules": 11,
+        "stop_modules": 13,
+        "switch_codewords": 1,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "mod103",
+        "appended": true,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "gs1-128": {
+      "family": "linear",
+      "data_shape": "gs1",
+      "identifier_ai": "01",
+      "gs1": {
+        "mode": "native",
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "subset-a": {
+          "ranges": [[0, 95]],
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "subset-b": {
+          "ranges": [[32, 127]],
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "subset-c": {
+          "characters": "0123456789",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "range",
+        "min": 1,
+        "max": 80,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "A",
+          "charset": "subset-a",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 3,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "B",
+          "charset": "subset-b",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 2,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "C",
+          "charset": "subset-c",
+          "group_size": 2,
+          "min_run": 2,
+          "requires_full_groups": true,
+          "priority": 1,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "code128",
+        "start_modules": 11,
+        "modules_per_codeword": 11,
+        "check_modules": 11,
+        "stop_modules": 13,
+        "switch_codewords": 1,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "mod103",
+        "appended": true,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "ean13": {
+      "family": "linear-retail",
+      "data_shape": "retail-gtin",
+      "identifier_ai": null,
+      "gtin_map": {
+        "from_length": 14,
+        "target_length": 13,
+        "zero_padding_width": 1,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "gs1": {
+        "mode": "retail-gtin",
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "digits": {
+          "characters": "0123456789",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "exact",
+        "exact": 13,
+        "includes_check_digit": true,
+        "source": "official-vector",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "retail-numeric",
+          "charset": "digits",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 1,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "fixed",
+        "total": 95,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "gs1",
+        "appended": false,
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "ean8": {
+      "family": "linear-retail",
+      "data_shape": "retail-gtin",
+      "identifier_ai": null,
+      "gtin_map": {
+        "from_length": 14,
+        "target_length": 8,
+        "zero_padding_width": 6,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "gs1": {
+        "mode": "retail-gtin",
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "digits": {
+          "characters": "0123456789",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "exact",
+        "exact": 8,
+        "includes_check_digit": true,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "retail-numeric",
+          "charset": "digits",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 1,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "fixed",
+        "total": 67,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "gs1",
+        "appended": false,
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "upca": {
+      "family": "linear-retail",
+      "data_shape": "retail-gtin",
+      "identifier_ai": null,
+      "gtin_map": {
+        "from_length": 14,
+        "target_length": 12,
+        "zero_padding_width": 2,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "gs1": {
+        "mode": "retail-gtin",
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "digits": {
+          "characters": "0123456789",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "exact",
+        "exact": 12,
+        "includes_check_digit": true,
+        "source": "official-vector",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "retail-numeric",
+          "charset": "digits",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 1,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "fixed",
+        "total": 95,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "gs1",
+        "appended": false,
+        "source": "gs1-dictionary",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "datamatrix": {
+      "family": "matrix",
+      "data_shape": "raw",
+      "identifier_ai": null,
+      "gs1": {
+        "mode": "not-modelled",
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "latin1": {
+          "ranges": [[0, 255]],
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "digits": {
+          "characters": "0123456789",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "range",
+        "min": 1,
+        "max": 1500,
+        "source": "placeholder-capacity",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "digit-pair",
+          "charset": "digits",
+          "group_size": 2,
+          "group_bits": 8,
+          "header_bits": 0,
+          "count_bits": 0,
+          "min_run": 2,
+          "priority": 1,
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "ascii",
+          "charset": "latin1",
+          "group_size": 1,
+          "group_bits": 8,
+          "header_bits": 0,
+          "count_bits": 0,
+          "min_run": 1,
+          "priority": 2,
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "matrix",
+        "bits_per_codeword": 8,
+        "table": [
+          {"side": 10, "data_codewords": 3},
+          {"side": 12, "data_codewords": 5},
+          {"side": 14, "data_codewords": 8},
+          {"side": 16, "data_codewords": 12},
+          {"side": 18, "data_codewords": 18},
+          {"side": 20, "data_codewords": 22},
+          {"side": 22, "data_codewords": 30},
+          {"side": 24, "data_codewords": 36},
+          {"side": 26, "data_codewords": 44},
+          {"side": 32, "data_codewords": 62}
+        ],
+        "source": "placeholder-capacity",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "reedsolomon",
+        "appended": true,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "qr": {
+      "family": "matrix",
+      "data_shape": "raw",
+      "identifier_ai": null,
+      "gs1": {
+        "mode": "not-modelled",
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "numeric": {
+          "characters": "0123456789",
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "alphanumeric": {
+          "characters": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:",
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        },
+        "byte": {
+          "ranges": [[0, 255]],
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "range",
+        "min": 1,
+        "max": 2000,
+        "source": "placeholder-capacity",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "numeric",
+          "charset": "numeric",
+          "group_size": 3,
+          "group_bits": 10,
+          "header_bits": 4,
+          "count_bits": 10,
+          "min_run": 1,
+          "priority": 1,
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "alphanumeric",
+          "charset": "alphanumeric",
+          "group_size": 2,
+          "group_bits": 11,
+          "header_bits": 4,
+          "count_bits": 9,
+          "min_run": 1,
+          "priority": 2,
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        },
+        {
+          "name": "byte",
+          "charset": "byte",
+          "group_size": 1,
+          "group_bits": 8,
+          "header_bits": 4,
+          "count_bits": 8,
+          "min_run": 1,
+          "priority": 3,
+          "source": "placeholder-capacity",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "matrix",
+        "bits_per_codeword": 8,
+        "table": [
+          {"side": 21, "data_codewords": 16},
+          {"side": 25, "data_codewords": 28},
+          {"side": 29, "data_codewords": 44},
+          {"side": 33, "data_codewords": 64},
+          {"side": 37, "data_codewords": 86},
+          {"side": 41, "data_codewords": 108},
+          {"side": 45, "data_codewords": 124},
+          {"side": 49, "data_codewords": 154},
+          {"side": 53, "data_codewords": 182},
+          {"side": 57, "data_codewords": 216}
+        ],
+        "source": "placeholder-capacity",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "reedsolomon",
+        "appended": true,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      }
+    },
+    "code39": {
+      "family": "linear",
+      "data_shape": "raw",
+      "identifier_ai": null,
+      "gs1": {
+        "mode": "unsupported",
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "charsets": {
+        "code39": {
+          "characters": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%",
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      },
+      "length": {
+        "kind": "range",
+        "min": 1,
+        "max": 80,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "modes": [
+        {
+          "name": "code39",
+          "charset": "code39",
+          "group_size": 1,
+          "min_run": 1,
+          "priority": 1,
+          "source": "placeholder-spec",
+          "status": "unverified",
+          "verified_at": null
+        }
+      ],
+      "modules": {
+        "kind": "code39",
+        "modules_per_character": 12,
+        "inter_character_gap": 1,
+        "start_stop_characters": 2,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      },
+      "checksum": {
+        "kind": "mod43",
+        "appended": false,
+        "source": "placeholder-spec",
+        "status": "unverified",
+        "verified_at": null
+      }
+    }
+  }
+}

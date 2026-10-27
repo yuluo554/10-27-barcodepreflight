@@ -6,7 +6,7 @@
 - **产出**：仓库 `10-27-barcodepreflight`，CLI 入口 `bpreflight`
 - **形态**：**纯本地 CLI**（零网络、参数驱动；开源解码器只作可选 oracle）
 - **基准日**：2026-10-27｜**代理实际检索窗口 2026-10-27T10:56Z – 11:14Z**
-- **当前状态**：**M1 数据先行已完成**（内嵌官方 AI 字典（commit 钉版 + 逐行哈希校验）+ 校验位单一实现 + 四个语义解释器 + GTIN/SSCC/日期/字符集/长度校验；`implementation_pending` 已退役）；**M2–M6 未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
+- **当前状态**：**M2 符号合法性已完成**（八符号 profile 数据表 + 字符集/长度/模式三段判定 + `encoding_plan` 切分唯一 + 跨符号等价性 3 组；全部规则 `unverified`，未核判定降级为 `warn`）；M1 数据先行已完成；**M3–M6 未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
 - **定位宣言**："生成器是红海（JsBarcode **5896★** / zint **821★** / python-barcode **658★** / BWIPP **504★**），GS1 AI 解析也已被官方参考实现占住（`gs1/gs1-syntax-engine` **52★**）。**空白在'印出来扫得出吗'这一层**：从生成参数（符号类型、X-dimension、静区、目标 DPI、条/空颜色、条高、放大率）直接判定'这个条码印出来会扫不出'并给可执行修复项——**不依赖图像采集**。"
 
 ---
@@ -15,27 +15,27 @@
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v3（M1 收尾） |
+| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v4（M2 收尾） |
 | `plan/01-题目文档.md` | 十段式题面：头部 / 介绍 / 五模块任务 / 提交材料 / 评分 / 锚点 / 边界 | ✅ v1 |
-| `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v1 |
-| `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v1 |
-| `plan/04-数据计划.md` | 数据清单 / 真值纪律 / 阈值三态 / 生成与冻结 / 已知缺口 | ✅ v1 |
-| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v2（M1 收尾） |
-| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D20 | ✅ v2（M1 收尾） |
+| `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v2（M2 收尾） |
+| `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v2（M2 收尾） |
+| `plan/04-数据计划.md` | 数据清单 / 真值纪律 / 阈值三态 / 生成与冻结 / 已知缺口 | ✅ v2（M2 收尾） |
+| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v3（M2 收尾） |
+| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D24 | ✅ v3（M2 收尾） |
 | `plan/HANDOFF-M1.md` | 第 1 棒交接单（七节） | ✅ v1（已收尾） |
-| `plan/HANDOFF-M2.md` | 第 2 棒交接单（七节） | ✅ v1 |
-| `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8）** + **内嵌快照身份（§3.1）** | ✅ v2（M1 收尾） |
+| `plan/HANDOFF-M2.md` | 第 2 棒交接单（七节） | ✅ v1（已收尾） |
+| `plan/HANDOFF-M3.md` | 第 3 棒交接单（七节） | ✅ v1 |
+| `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8，含 §8.10 符号可行性）** + **内嵌快照身份（§3.1）** | ✅ v3（M2 收尾） |
 | `AGENTS.md` | 方法论锚点：布局门命令、强制布局清单、环境事实 | ✅ v1 |
-| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v2（M1 收尾） |
+| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v3（M2 收尾） |
 | `LICENSE` | Apache-2.0 全文 | ✅ v1 |
 | `.gitignore` | Python 标准模板 + `*.png` 等生成产物不入仓 | ✅ v1 |
 
-**待建（按里程碑产出，不预先占位）**：`src/bpreflight/symbols/`（M2）、
-`src/bpreflight/print/`（M3）、`src/bpreflight/oracle/`（M5）、`tools/gen_fixtures.py`（M3）、
-`plan/RELEASE-M6.md`（M6）。
+**待建（按里程碑产出，不预先占位）**：`src/bpreflight/print/`（M3）、`src/bpreflight/oracle/`（M5）、
+`tools/gen_fixtures.py`（M3）、`plan/RELEASE-M6.md`（M6）。
 
-> `src/bpreflight/gs1/`（M1）与 `src/bpreflight/data/gs1-syntax-dictionary/`（M1）**已落盘**，
-> 从"待建"移到本表上方。
+> `src/bpreflight/gs1/`（M1）、`src/bpreflight/data/gs1-syntax-dictionary/`（M1）与
+> `src/bpreflight/symbols/`（M2）**已落盘**，从"待建"移到上方。
 
 > 状态图例：✅ 已落盘 · 🟡 进行中 · ⬜ 待做。**状态列必须与里程碑同步翻转（同一提交内改）。**
 
@@ -120,6 +120,9 @@
 | 三态查证齐（✅/⚠️/⬜） | `data/README.md` | 文档 | 人工核对 + §9 未核清单 | ✅（骨架期） |
 | ISO 编号全部 ⚠️ 标注 | 决策 D4 | 文档 | `grep -n "ISO/IEC"` 逐条看是否有 ⚠️ | ✅（骨架期） |
 | 发布：tag + GitHub Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ |
+| 跨符号等价性逐条有原因（字符集/长度/结构/模式） | `plan/01` §M2 | 源码 + 测试 | `tests/test_symbols.py` 三组用例逐条断言；禁写"前缀"措辞 | ✅ M2 |
+| `encoding_plan` 切分唯一（`tie_break: "longest-first"`） | `plan/01` §M2 确定性纪律 | 源码 | 双跑相等 + `tie_break` 字段断言 + 段文本拼接等于输入 | ✅ M2 |
+| 符号规则全部数据驱动且带三态 | `plan/04` D4 | `symbol_profiles.json` | 每条规则 `source`/`status`/`verified_at`；装载期校验（`tests/test_symbols.py`） | ✅ M2 |
 
 **台账外的"永不进判定路径"项**（写清以免被当欠债）：
 - **GEPIR / 主数据** —— 需联网授权，永不实现（弃选项）。
@@ -137,6 +140,7 @@
 | 官方 AI 字典（内嵌） | `src/bpreflight/data/gs1-syntax-dictionary/`（正文 + `LICENSE` + `NOTICE`）+ `src/bpreflight/data/vectors/dict_manifest.json` | M1 | `git ls-files src/bpreflight/data`；哈希与 manifest 一致 |
 | GS1 向量集 | `src/bpreflight/data/vectors/gs1_vectors.json` | M1 | `git ls-files src/bpreflight/data/vectors/gs1_vectors.json`；`pytest -q tests/test_gs1_semantics.py` |
 | 符号 profile 表 | `src/bpreflight/data/vectors/symbol_profiles.json` | M2 | `pytest -q tests/test_symbols.py`（跨符号等价性 3 组） |
+| M2 符号层 | `src/bpreflight/symbols/`（`profiles.py` + `feasibility.py`） | M2 | `pytest -q tests/test_symbols.py`；`grep -rc "def gs1_check_digit" src/` == 1 |
 | 印刷阈值 | `src/bpreflight/data/vectors/quiet_zone.json`、`gen_spec.json` | M3 | 每项有 `source`/`status`/`verified_at`（测试断言字段齐全） |
 | 颜色用例 | `src/bpreflight/data/vectors/color_cases.json` | M3 | `pytest -q tests/test_color.py` |
 | M3 五项检查 + `fix` | `src/bpreflight/print/` | M3 | `pytest -q tests/test_print_audit.py` |
@@ -158,7 +162,7 @@
 |---|---|---|---|
 | **M0 · 计划与骨架** | 装订三件（`AGENTS.md` + 五道门 + `plan/00` 装订行）+ `plan/00`–`06` + 可运行 CLI 骨架 + 报告层 + 五道门 + CI | 五道门本地全绿且**变异验证逐条变红**；`pytest` 双解释器全绿；`bpreflight check` 可跑并产出确定性 JSON/MD；`plan/HANDOFF-M1.md` 落盘 | ✅ |
 | **M1 · 数据先行** | 内嵌官方 AI 字典（`gs1-syntax-dictionary` Apache-2.0）+ 四个语义解释器（`req`/`ex`/`yymmd0`/`csum`）+ 校验位向量集 + GTIN/SSCC/日期/字符集/长度校验 | 四个官方向量全 PASS 且**只有一个**校验位函数；`yymmd0`/`req`/`ex` 用例逐条过；`dict_version` 进报告头；`report.header.dict_sha256` 可复算 | ✅ |
-| **M2 · 符号合法性** | `symbol_profiles.json` 数据驱动 + 八符号的结构性可行性 + 容量/字符集/模式切换 + 跨符号等价性 | 跨符号等价性 3 组逐条有原因；`encoding_plan.segments` 切分唯一（`tie_break: longest-first`）；校验位不在 M2 复制第二份 | ⬜ |
+| **M2 · 符号合法性** | `symbol_profiles.json` 数据驱动 + 八符号的结构性可行性 + 容量/字符集/模式切换 + 跨符号等价性 | 跨符号等价性 3 组逐条有原因；`encoding_plan.segments` 切分唯一（`tie_break: longest-first`）；校验位不在 M2 复制第二份；`module_not_implemented:M2` 已收窄 | ✅ |
 | **M3 · 印刷可读性** | 五项检查（静区/放大率/DPI 混叠/条高/颜色）+ `fix` 必填 + 阈值外置带三态 | **`quiet_zone_absent`（零静区）恒 error 且不依赖任何未核数字**；`quiet_zone_insufficient` 按阈值状态升降；python-barcode #41 类场景可复现；放大率边界 4 值逐条测；DPI 四值边界逐条测；阈值项未核降级为 `warn` 且 `--strict-thresholds` 恢复 `error`（**DPI/颜色两项不参与降级**）；`tools/check_thresholds.py` 0 命中 | ⬜ |
 | **M4 · 报告与门禁** | JSON + MD 同源 + 退出码矩阵 + `--fail-on` + fingerprint | 退出码矩阵逐格全覆盖；两格式 `findings` 按 fingerprint 完全相等；首屏三段字面断言；零网络 AST 扫 0 命中 | ⬜ |
 | **M5 · 仿真回读（可选）** | 最小采样器 + zxing-cpp oracle + `agreement` 三态 | 每模块 1 点样本：oracle 解不出且 M3 判 `raster_alias_high_risk`（一致）；健康样本一致；红条+红光一致；`m3_laxer` 记为 bug；oracle 缺失标 `skipped: oracle_absent` | ⬜ |
@@ -169,6 +173,11 @@
 > **兑现记录（2026-10-27）**：M1 已收尾——字典按 commit 钉版入库、整表 224 条目 → 541 个具体 AI
 > 逐行解析、四官方向量全 PASS、`implementation_pending` 同提交退役。风险 R2 的缓解条款
 > （"退役不等于敢说 pass"）换成两条更强的不变式，见 `plan/HANDOFF-M2.md` §二。
+>
+> **兑现记录（2026-10-27）**：M2 已收尾——八符号 profile 数据表（每条规则带 `source`/`status`/
+> `verified_at`，本轮全部 `unverified`）、字符集/长度/模式三段判定、`encoding_plan` 切分唯一
+> （`tie_break: longest-first`）、跨符号等价性 3 组逐条有原因；`module_not_implemented:M2`
+> 同提交收窄为 M3 单条。未核规则的判定降级口径见 `data/README.md` §8.10。
 
 ---
 

@@ -7,17 +7,18 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：M1（数据先行）**。已落盘的是**数据层**：内嵌官方 GS1 AI 字典（commit 钉版、
-逐次运行校验哈希）+ **唯一**校验位实现 + 四个语义解释器（`req` / `ex` / `yymmd0` / `csum`）
-+ GTIN/SSCC/日期/字符集/长度校验。**M2（符号合法性）与 M3（印刷可读性）未实现**，
-报告会在首屏 `SKIPPED:` 一栏里自己说（`module_not_implemented:M2/M3`）——不会让人把
-只做了数据层的结论读成"整个条码没问题"。
+**状态：M2（符号合法性）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
+四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）与 **M2 符号层**（八符号 profile 数据表 +
+字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）。**M3（印刷可读性）未实现**，
+报告会在首屏 `SKIPPED:` 一栏里自己说（`module_not_implemented:M3`）——不会让人把
+只做了数据层与符号层的结论读成"整个条码没问题"。符号规则本轮**全部 `unverified`**
+（未取到规范原文），由它们派生的判定默认降级为 `warn`，`--strict-thresholds` 恢复 `error`。
 
 | 里程碑 | 状态 | 说明 |
 | --- | --- | --- |
 | M0 | ✅ | 计划套件 + 五道门 + 可运行骨架（本地等价校验，未接远端） |
 | M1 | ✅ | 数据层：内嵌官方字典 + 校验位 + 语义解释器（本地等价校验，未接远端）；另补第六道门 `check_ci_workflow.py`（CI 工作流 YAML 可解析性） |
-| M2 | ⬜ | 符号合法性 |
+| M2 | ✅ | 符号层：八符号 profile（全部 `unverified`）+ 三段判定 + `encoding_plan`（本地等价校验，未接远端） |
 | M3 | ⬜ | 印刷可读性（差异化核心） |
 | M4 | ⬜ | 报告与 CI 门禁 |
 | M5 | ⬜ | 栅格化仿真回读（可选） |
@@ -91,7 +92,32 @@ TOP FIX: recompute_check_digit -> 09501101530003 digits
 | 长度 / 字符集 | 按字典的组件规格（`N14` / `X..20` / `[X..16]`）逐段核对 |
 
 **它不假装会判的东西**（都进首屏 `SKIPPED:`）：`gcppos1/2`（要 GCP 分配库 = GEPIR 联网授权，
-属非目标）、字典点名但本棒未实现的 linter、以及 M2/M3 两个未落地模块。
+属非目标）、字典点名但本棒未实现的 linter、M3 印刷层（`module_not_implemented:M3`），
+以及符号层自己的三条（`symbol_not_specified` / `symbol_data_unparsed` /
+`gs1_2d_fnc1_not_modelled`）。
+
+### 符号层判什么（M2）
+
+| 判据 | 说明 |
+| --- | --- |
+| 字符集 ⊆ | 每个字符都必须落在目标符号某个模式的字符集里（EAN-13 只收数字、Code 39 不收小写） |
+| 长度 ∈ | 定长符号（EAN-8 / EAN-13 / UPC-A）必须精确匹配；变长符号落在数据文件的 `[min, max]` |
+| 模式可覆盖 | 贪心 **longest-first** 切分；同长时按数据文件里的模式优先级 |
+| `encoding_plan` | `{symbol, mode, segments[], total_modules, checksum, tie_break}`；**不可编码时不输出半个计划**，原因进 findings |
+| 零售 GTIN | `(01)` 是 GTIN-14；去掉**真实的前导零**才是 EAN-13 / GTIN-12 / GTIN-8 形态（结构原因，不写"国家前缀"） |
+
+跨符号等价性三例（`tests/test_symbols.py` 逐条断言原因）：
+
+```
+012345678905   -> upca PASS；ean13 不可（12 位 ≠ 13）
+0012345678905  -> ean13 PASS；upca 不可（13 位 ≠ 12）
+00012345678905 -> 三只零售符号都不可（14 位）；gs1-128 可承载
+```
+
+符号规则同样是**数据**：`src/bpreflight/data/vectors/symbol_profiles.json`，每条带
+`source` / `status` / `verified_at`。本轮没有取到任何符号规范原文 ⇒ **全部 `unverified`**，
+判定降级为 `warn`；`--strict-thresholds` 恢复 `error`。校验位仍只有一份实现
+（`gs1/checksum.py`），M2 只调用不复制。
 
 ### 退出码
 
@@ -169,7 +195,8 @@ py -3.12 -m pytest -q                    # 全量测试
 | `plan/00-README总览.md` | 总览 / 决策记录 / 弃选项 / 承诺-证据台账 |
 | `plan/01-题目文档.md` | 题面：痛点、已占位矩阵、五模块任务、评分、边界 |
 | `plan/02` – `plan/06` | 架构 / 模块详设 / 数据计划 / 里程碑 / 交付对标 |
-| `plan/HANDOFF-M2.md` | 下一棒交接单（当前事实与不动点） |
+| `plan/HANDOFF-M2.md` | 上一棒交接单（符号层的当前事实与不动点） |
+| `plan/HANDOFF-M3.md` | 下一棒交接单（印刷层） |
 | `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** + 内嵌字典身份（§3.1） |
 | `AGENTS.md` | 方法论锚点与门命令 |
 
