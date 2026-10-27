@@ -19,7 +19,7 @@ M1 已完成并验证（**本地等价校验，未接远端，CI 待首推验证
 | `yymmd0` 对照对 | `(17)251200` → `dd00_last_day_of_month`(info) + 归一 `2025-12-31`；`(17)251301` → `invalid_date` |
 | `req` / `ex` | `(10)` 单独报 / `(01)(10)` 不报；`(250)` 单独报 / `(01)(21)(250)` 不报 / `(01)(250)` 报；`(01)+(255)` 报、`(01)` 单独不报 |
 | 全量测试 | `py -3.12 -m pytest -q` → **134 passed**；`py -3.8 -m pytest -q` → **134 passed** |
-| 五道门 + 变异自检 | 四条常驻门全绿；`tools/verify_gates.py` → **23 组变异：符合预期 23 / 不符合 0** |
+| 六道门 + 变异自检 | 五条常驻门全绿（布局/脱敏/阈值/下限/CI 工作流）；`tools/verify_gates.py` → **28 组变异：符合预期 28 / 不符合 0** |
 | 打包自足性 | `py -3.12 -m build --wheel` + 新 venv 装 wheel → 中立目录跑 `bpreflight check` 成功，`data/gs1-syntax-dictionary/*` 与 `data/vectors/*` 都在 wheel 里 |
 
 **M1 的 DoD 在 `plan/05` §三（全部打勾）**。
@@ -144,7 +144,7 @@ M1 已完成并验证（**本地等价校验，未接远端，CI 待首推验证
 - [ ] `module_not_implemented:M2` 已收窄（pipeline + 测试同步改）
 - [ ] 三处状态副本同提交翻 ✅
 - [ ] `plan/HANDOFF-M3.md` 七节齐
-- [ ] 四道门 + `verify_gates.py` 仍全绿；`pytest` 3.8 / 3.12 双绿
+- [ ] 六道门 + `verify_gates.py` 仍全绿；`pytest` 3.8 / 3.12 双绿
 
 ## 七、关键命令速查
 
@@ -153,7 +153,8 @@ py -3.12 tools/check_sprint_layout.py     # 布局门（第一件事）
 py -3.12 tools/check_desensitized.py      # 脱敏门
 py -3.12 tools/check_thresholds.py        # 阈值零硬编码门
 py -3.12 tools/check_python_floor.py      # Python 下限门
-py -3.12 tools/verify_gates.py            # 门自检（23 组变异）
+py -3.12 tools/check_ci_workflow.py       # CI 工作流门
+py -3.12 tools/verify_gates.py            # 门自检（28 组变异）
 py -3.12 -m pytest -q                     # 全量测试
 py -3.8  -m pytest -q                     # 3.8 通道（语法回归）
 PYTHONPATH=src py -3.12 -X utf8 -m bpreflight check --input examples/spec-ean13.json

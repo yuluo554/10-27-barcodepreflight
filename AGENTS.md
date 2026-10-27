@@ -33,10 +33,11 @@ py -3.12 tools/check_sprint_layout.py     # 布局门；必须绿，红了先修
 | 脱敏门 | `py -3.12 tools/check_desensitized.py` | 入库文本无本机盘符 / 用户名 / 回环代理 |
 | 阈值零硬编码门 | `py -3.12 tools/check_thresholds.py` | `src/` 无裸阈值字面量 |
 | Python 下限门 | `py -3.12 tools/check_python_floor.py` | 语法未越过 `requires-python` 下限 |
+| CI 工作流门 | `py -3.12 tools/check_ci_workflow.py` | 工作流 YAML 留在可解析子集；门各自独立 step；矩阵含 3.8/3.12 |
 | 门自检（变异验证） | `py -3.12 tools/verify_gates.py` | 逐条注入缺陷，必须逐条变红 |
 | 全量测试 | `py -3.12 -m pytest -q` | 单测与集成 |
 
-CI 里这五条每条都是独立 step（见 `.github/workflows/ci.yml`）。
+CI 里这六条每条都是独立 step（见 `.github/workflows/ci.yml`）。
 
 ## 环境事实与禁忌（只写实测过的）
 

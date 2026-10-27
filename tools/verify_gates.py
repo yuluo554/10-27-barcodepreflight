@@ -30,7 +30,10 @@ GATES = {
     "desens": "tools/check_desensitized.py",
     "thresholds": "tools/check_thresholds.py",
     "floor": "tools/check_python_floor.py",
+    "ci": "tools/check_ci_workflow.py",
 }
+
+CI_WORKFLOW = ".github/workflows/ci.yml"
 
 IGNORE = shutil.ignore_patterns(
     ".git", ".mimosa", ".claude", ".zcode", "__pycache__", ".pytest_cache", "out", "build", "dist"
@@ -356,6 +359,60 @@ def m_floor_none(m):
     )
 
 
+def m_ci_unquoted_colon(m):
+    """M0 真实踩过的那一脚：未加引号的 step 名里出现 `": "` → 该 YAML 不可解析。"""
+    m.replace(
+        CI_WORKFLOW,
+        '- name: "Smoke (installed CLI: help + example run)"',
+        "- name: Smoke (installed CLI: help + example run)",
+    )
+
+
+def m_ci_missing_gate_step(m):
+    """删掉一条门的独立 step（决策 D18）→ 必须红。"""
+    m.replace(
+        CI_WORKFLOW,
+        '      - name: "CI workflow gate (workflow YAML must stay in a parseable subset)"\n'
+        "        run: python tools/check_ci_workflow.py\n",
+        "",
+    )
+
+
+def m_ci_two_gates_one_step(m):
+    """把两个门塞进同一个 step → 必须红（D18 的"独立 step"判据）。"""
+    m.replace(
+        CI_WORKFLOW,
+        '      - name: "CI workflow gate (workflow YAML must stay in a parseable subset)"\n'
+        "        run: python tools/check_ci_workflow.py\n",
+        '      - name: "Two gates in one step"\n'
+        "        run: |\n"
+        "          python tools/check_ci_workflow.py\n"
+        "          python tools/check_python_floor.py\n",
+    )
+
+
+def m_ci_matrix_drop_py38(m):
+    """矩阵里删掉 3.8 → 必须红（requires-python 的下限要有实跑）。"""
+    m.replace(CI_WORKFLOW, '            python: "3.8"', '            python: "3.11"')
+    m.replace(CI_WORKFLOW, '- os: ubuntu-latest\n            python: "3.11"', '- os: ubuntu-latest')
+
+
+def m_ci_negative_control(m):
+    """阴性对照：合法形状（引号包裹 / 块标量 / 列表 / 注释）必须放行。"""
+    m.append(
+        CI_WORKFLOW,
+        '\n  demo:\n'
+        '    runs-on: ubuntu-latest\n'
+        '    steps:\n'
+        '      - name: "Colon in a quoted name: like this"\n'
+        "        run: |\n"
+        "          echo ok  # trailing comment is fine\n"
+        "      - name: list shaped\n"
+        "        with:\n"
+        "          args: [a, b]\n",
+    )
+
+
 MUTATIONS = [
     # (label, gate, mutate, expect_red)
     ("L1 删 AGENTS.md", "layout", m_layout_files, True),
@@ -381,6 +438,11 @@ MUTATIONS = [
     ("P1 3.10 的 match", "floor", m_floor_match, True),
     ("P2 3.9 的内建泛型注解", "floor", m_floor_builtin_generic, True),
     ("P3 合法 3.8 语法（阴性对照，必须绿）", "floor", m_floor_none, False),
+    ("C1 未加引号的 step 名里带 ':'（M0 真实踩过）", "ci", m_ci_unquoted_colon, True),
+    ("C2 删掉一条门的独立 step", "ci", m_ci_missing_gate_step, True),
+    ("C3 两个门塞进同一个 step", "ci", m_ci_two_gates_one_step, True),
+    ("C4 矩阵里删掉 3.8", "ci", m_ci_matrix_drop_py38, True),
+    ("C5 合法形状（阴性对照，必须绿）", "ci", m_ci_negative_control, False),
 ]
 
 
@@ -390,9 +452,9 @@ MUTATIONS = [
 
 
 def baseline(root):
-    """基线：四道门必须全绿，且每条都报出"扫到了几个"（非空跑自证）。"""
+    """基线：全部门必须全绿，且每条都报出"扫到了几个"（非空跑自证）。"""
     problems = []
-    for gate in ("layout", "desens", "thresholds", "floor"):
+    for gate in sorted(GATES):
         code, output = run_gate(root, gate)
         if code != 0:
             problems.append("基线 {} 门应为绿，实际 rc={}\n{}".format(gate, code, output))

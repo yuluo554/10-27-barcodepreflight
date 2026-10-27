@@ -16,7 +16,7 @@ JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 | 里程碑 | 状态 | 说明 |
 | --- | --- | --- |
 | M0 | ✅ | 计划套件 + 五道门 + 可运行骨架（本地等价校验，未接远端） |
-| M1 | ✅ | 数据层：内嵌官方字典 + 校验位 + 语义解释器（本地等价校验，未接远端） |
+| M1 | ✅ | 数据层：内嵌官方字典 + 校验位 + 语义解释器（本地等价校验，未接远端）；另补第六道门 `check_ci_workflow.py`（CI 工作流 YAML 可解析性） |
 | M2 | ⬜ | 符号合法性 |
 | M3 | ⬜ | 印刷可读性（差异化核心） |
 | M4 | ⬜ | 报告与 CI 门禁 |
@@ -157,6 +157,7 @@ py -3.12 tools/check_sprint_layout.py    # 布局门（方法论装订）
 py -3.12 tools/check_desensitized.py     # 脱敏门
 py -3.12 tools/check_thresholds.py       # 阈值零硬编码门
 py -3.12 tools/check_python_floor.py     # Python 下限门（AST）
+py -3.12 tools/check_ci_workflow.py      # CI 工作流门（YAML 可解析子集）
 py -3.12 tools/verify_gates.py           # 门自检（注入缺陷 → 必须逐条变红）
 py -3.12 -m pytest -q                    # 全量测试
 ```
