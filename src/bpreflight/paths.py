@@ -16,7 +16,13 @@ VECTORS_DIR = os.path.join(DATA_DIR, "vectors")
 DICT_DIR = os.path.join(DATA_DIR, "gs1-syntax-dictionary")
 
 #: 随包发行的向量文件（按固定序，输出可复现）。
-VECTOR_FILES = ("quiet_zone.json", "gen_spec.json")
+#: M1 新增 `gs1_vectors.json`（语义用例 + 校验位向量）与 `dict_manifest.json`（字典身份）。
+VECTOR_FILES = (
+    "quiet_zone.json",
+    "gen_spec.json",
+    "gs1_vectors.json",
+    "dict_manifest.json",
+)
 
 
 def data_path(*parts):

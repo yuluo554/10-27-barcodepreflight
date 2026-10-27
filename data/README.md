@@ -141,10 +141,10 @@
 
 | 记号 | 语义 | M1 必须实现 |
 |---|---|---|
-| `N` / `X` | 定长数字 / 可变字符集 | 字符集 + 长度校验 |
+| `N` / `X` | 定长数字 / 可变字符集（CSET 82） | 字符集 + 长度校验 |
 | `..20` / `N14` | 变长上限 / 定长 | 长度校验与截断判定 |
-| `*` | 该 AI 为**必填**（GS1 元素串主轴） | 必填组合校验 |
-| `?` | 定长 AI 的**结束判定**标志（无需 FNC1 分隔） | 变长/定长边界推导 |
+| `*` | **定长 AI 且不需要 FNC1 分隔**（上游原话："Pre-defined length AI not requiring FNC1 separator"） | 字段边界推导（**不是**"该 AI 必填"） |
+| `?` | **允许作为 GS1 Digital Link 数据属性**（上游原话："AI that is permitted as a GS1 Digital Link data attribute"） | 本棒只记录不作判定（Digital Link 不在首期范围） |
 | `csum` | 该 AI 含校验位 | 走 §8.1 算法，**不自造** |
 | `yymmd0` | YYMMDD，且 **DD=00 合法** | **不得判 DD=00 为错**（见下） |
 | `gcppos1` / `gcppos2` | 校验位所处位置（1 位 / 2 位尾部） | 校验位定位 |
@@ -157,10 +157,43 @@
 **`yymmd0` 的关键注意点（自造解析器最常错的一处）**：
 
 - `yymmd0` 允许 **DD = 00**，语义为**当月最后一天**。
-- 该规则在 11/13/15/17 四类日期 AI 上均需按此理解；⚠️ **四类 AI 的逐条适用性须以 `gs1-syntax-dictionary` 的 linter 规则源码逐条核对后固化**（本次只有 17 的原文行 + 规则名 `lint_yymmd0` 为实证，其余三类为待核项）。
+- 该规则在 11/12/13/15/16/17/**4324/4325** 八条 AI 上均按此理解（**✅ M1 已逐条核对**：
+  以字典原文行逐条读 `N6,yymmd0` 的归属，见下）。
+- **八条 `yymmd0` 逐条核对的结论**（✅ 2026-10-27，依据 = 字典原文行）：
+  `11 PROD DATE` / `12 DUE DATE` / `13 PACK DATE` / `15 BEST BEFORE or BEST BY` /
+  `16 SELL BY` / `17 USE BY or EXPIRY` / `4324 NOT BEF DEL DT` / `4325 NOT AFT DEL DT`。
+  其中 `4324`/`4325` 的 `yymmd0` 是**组件级**（`N6,yymmd0 N4,hhmi`），即日期只占前 6 位。
+- **`yymmdd`（无 DD=00 惯例）另有 6 条**：`4326` / `7003` / `7006` / `7007` / `7011` / `8008`；
+  **`yyyymmdd` 2 条**：`7250` / `7251`。同一族但**不允许 DD=00**，M1 一并实现（同一 id `invalid_date`）。
 - M1 的验收里必须含两条：①`(17)251200`（YY=25/MM=12/DD=00）**不得**被判 `invalid_date`，应判 `dd00_last_day_of_month` 并以 **2025-12-31** 参与后续比对；②对照 `(17)251301`（MM=13）**必须**判 `invalid_date`。两条一起才证明「DD=00 特例」没有被实现成「日期校验全关」。
+- **YY → CCYY 的世纪窗口**（`lint_yymmd0.c` 里是编译期 `CURRENT_YEAR`）：M1 **固定**为
+  数据文件 `gs1_vectors.json[yymmd0.century_resolution]`（参考年 21 / 窗口 50），
+  **不读系统时钟**——否则同一输入会因"跑的年份"不同而产出不同报告（违反 K10）。
 
-**为什么不自造 AI 表**：AI 表有上千行、带 `req`/`ex`/`minmax` 组合语义，任何手抄都会漂移。M1 **内嵌 `gs1-syntax-dictionary`（Apache-2.0）或 `ref.gs1.org` JSON-LD**，把字典当数据读，代码只实现四个语义解释器（`req`/`ex`/`yymmd0`/`csum`）。
+**为什么不自造 AI 表**：AI 表有上千行、带 `req`/`ex`/`minmax` 组合语义，任何手抄都会漂移。M1 **内嵌 `gs1-syntax-dictionary`（Apache-2.0）**，把字典当数据读，代码只实现四个语义解释器（`req`/`ex`/`yymmd0`/`csum`）。
+
+### 3.1 内嵌快照与身份（✅ M1 已落盘）
+
+| 项 | 值 |
+|---|---|
+| 上游 | `gs1/gs1-syntax-dictionary`（Apache-2.0） |
+| 快照 commit | `c63d8a12210dd0cfaceac4aae45ccf57b48eb15b`（committed 2026-08-29T06:07:59Z） |
+| 抓取日 | **2026-10-27** |
+| 入库位置 | `src/bpreflight/data/gs1-syntax-dictionary/`（正文 + 上游 `LICENSE` + 本项目 `NOTICE`） |
+| `dict_version` | `gs1-syntax-dictionary@c63d8a12210d-2026-08-29` |
+| `sha256`（正文） | `1ea02f4e3b81d3092e095987600e01c7fd55310f4da5181f5a070262ff6ffc94` |
+| 整表解析结果 | **224 条目行 → 541 个具体 AI**（区间展开后）；283 个组件；193 条带 `req`；85 条带 `ex` |
+
+- **上游头部是 `# Release: UNSET`**（树不在 tag 上），因此 `dict_version` 用
+  **commit 短哈希 + 提交日**拼出，而不是编一个版本号。
+- 哈希在**每次运行**由 `src/bpreflight/gs1/dictionary.py` 复算；不符即
+  `DictionaryError` → exit 3（**安装问题，不是关于条码的结论**）。
+- 复算方式：`py -3.12 -c "import hashlib,io;print(hashlib.sha256(io.open('src/bpreflight/data/gs1-syntax-dictionary/gs1-syntax-dictionary.txt','rb').read()).hexdigest())"`。
+- **linter 的归宿**（不许"静默略过"）：字典点名的 linter 里，M1 **解释** `csum` +
+  日期族（`yymmd0`/`yymmdd`/`yyyymmdd`，`yyyymmd0` 当前表内无使用者）；
+  `gcppos1`/`gcppos2` 需要 **GCP 分配库（GEPIR，联网授权）** 才能判 —— 那是
+  `plan/01` §7 的**非目标**，因此标 `skipped: gcp_lookup_unavailable`（**不冒充已判**）；
+  其余 linter 标 `skipped: linter_not_implemented:<name>`，由后续里程碑收编。
 
 ---
 
@@ -224,7 +257,7 @@
 | 数据源 | 获取方式 | 结果 | 状态 |
 |---|---|---|---|
 | `ref.gs1.org` JSON-LD（AI 表） | HTTP GET | **200，约 546 KB** | ✅ |
-| `gs1/gs1-syntax-dictionary`（AI 表 + linter 规则） | GitHub 源码 | **可获取，Apache-2.0** | ✅ |
+| `gs1/gs1-syntax-dictionary`（AI 表 + linter 规则） | GitHub 源码 | **可获取，Apache-2.0**；✅ **M1 已内嵌**（commit `c63d8a12`，见 §3.1） | ✅ |
 | `gs1/gs1-syntax-engine`（官方参考实现，可作 M1 对照组） | GitHub 源码 | 可获取（52★ @ 2026-10-08） | ✅ |
 | `iso.org` | HTTP GET | **403** | ⬜ |
 | `gs1.org` | HTTP GET | **403** | ⬜ |
@@ -241,6 +274,9 @@
 ## 七、合成数据纪律
 
 1. **全部程序化生成**：不采集任何真实商品/标签照片。向量集与 fixture 全部由脚本按确定性规则生成。
+   **例外（唯一一处第三方数据）**：`src/bpreflight/data/gs1-syntax-dictionary/` 是官方 AI 表的
+   **原样副本**（Apache-2.0，附上游 `LICENSE` 与来源 `NOTICE`）——它是**官方数据**，不是合成样本，
+   也正因如此才必须**照抄而不是转述**（`plan/00` D1）。
 2. **确定性**：同一 `--seed` 与同一向量文件 ⇒ **逐字节一致**的输出（JSON key 有序、无时间戳、无随机、浮点一律转成定点或字符串）。
 3. **可自证**：任何一个"期望判定"，都必须能追到三处之一——①官方源码/官方单测向量；②官方 JSON-LD/字典原文；③本文件 §8 的口径定义 + 手算留痕。
 4. **不造真实主体**：GTIN/SSCC 样例一律取自官方单测向量与公开规范范例（`09501101530003`、`4006381333931` 等），**不对应任何真实在售商品**；公司前缀等敏感信息一律不出现。
@@ -267,6 +303,24 @@ check = (10 - sum % 10) % 10
 - 只对**数据位**求和；校验位本身不计入。
 - 与 §4.2 四个向量绑定为回归测试；**任何实现改动必须四个向量全 PASS**。
 - 不实现"另一种流派"（不要加 fallback 分支——两套算法并存等于没有判定）。
+- 唯一实现：`src/bpreflight/gs1/checksum.py::gs1_check_digit`（✅ M1 已落盘；
+  `tests/test_checksum.py` 用 AST + 文本两条判据把"只有一个"钉住）。
+
+### 8.1.1 日期口径（`yymmd0` / `yymmdd` / `yyyymmdd`）——✅ M1 已落盘
+
+```
+输入：日期字段文本 v（宽度由组件规格决定：YY 2 位 or YYYY 4 位，MM/DD 各 2 位）
+month ∈ 01..12（越界 → invalid_date）
+DD == 00 且在 d0 族 linter 下 → 合法，归一到当月最后一天（info: dd00_last_day_of_month）
+DD ∈ 01..当月天数 → 合法；DD > 当月天数 → invalid_date
+月天数用 calendar.monthrange(year, month)（闰年交给标准库，不手写）
+```
+
+- **YY → CCYY 的世纪窗口固定**在 `src/bpreflight/data/vectors/gs1_vectors.json`
+  （`yymmd0.century_resolution`：参考年 21 / 窗口 50 / 世纪 19·20·21）——对应上游
+  `lint_yymmd0.c` 的编译期 `CURRENT_YEAR`。**不读系统时钟**（K10）。
+- DD=00 的两个反例必须同时存在（`(17)251200` 报 info 且归一到 2025-12-31；
+  `(17)251301` 必须 invalid_date），否则"特例"可能被实现成"日期校验全关"。
 
 ### 8.2 静区（quiet zone）判定
 
@@ -378,6 +432,11 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 - **不设 `unknown` 作为 `verdict`**。原因：`verdict` 必须只由 `findings` 决定，否则同一输入会因为"是否装了 oracle"而产出不同 `verdict`，破坏确定性。
 - "不可判"信息放在**独立字段**：
   - `skipped: "oracle_absent"`（M5 未跑，`--oracle` 被请求但引擎缺失）；
+  - `skipped: "reference_engine_absent"`（M1 的向量没交给官方 `gs1-syntax-engine`
+    做过一致性对照——**没有对照就说没对照**，不伪造"一致"）；
+  - `skipped: "gcp_lookup_unavailable"`（该判定要 GCP 分配库 = GEPIR 联网授权，
+    属非目标）；
+  - `skipped: "module_not_implemented:<Mk>"`（该模块尚未落地，报告必须自己说）；
   - 每条 finding 的 `threshold_status: "unverified"`（该条阈值本轮未核）；
   - 报告头 `strict_thresholds: true|false`。
 - `--strict-thresholds` 的作用是把 `unverified` 项的 `severity` 由 `warn` 恢复为 `error`，从而 `verdict` 自然变成 `fail`——**不引入第四种 verdict**。
@@ -408,7 +467,7 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | 2 | 各符号的静区模块数（EAN/UPC、Code 128、Data Matrix、QR 等） | ⚠️ | gs1.org 403；仅二手 |
 | 3 | 零售 POS 放大率区间 80%–200% | ⚠️ | 仅 BarStripeLab 源码（1★）见到 |
 | 4 | 名义 X = 0.330 mm、条高 22.85 mm | ⚠️ | 二手；须核 GenSpec 原表 |
-| 5 | `yymmd0` 在 11/13/15/17 四类日期上的逐条适用性 | ⚠️ | 只有 17 的原文行 + 规则名实证 |
+| 5 | `yymmd0` 在 11/13/15/17 四类日期上的逐条适用性 | ✅ **M1 已核对** | 以字典原文行逐条确认（实为 8 条：11/12/13/15/16/17/4324/4325，见 §3）；同族 `yymmdd` 6 条、`yyyymmdd` 2 条另计 |
 | 6 | 各符号的容量/模式切换表（Code 128 子集 C 边界、Data Matrix 尺寸档、QR 纠错等级） | ⚠️ | 本轮未取规范原文；M2 按"符号 profile 数据文件 + 官方编码器交叉验证"实现，不手抄容量表 |
 | 7 | zxing-cpp 本机可用性 | ⬜ | 本机未验证；M5 缺失时标 `skipped: oracle_absent` |
 | 8 | StackOverflow 正文页 | ⚠️ | 本轮取到检索摘要，未逐页直取正文 |

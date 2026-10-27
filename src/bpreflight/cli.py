@@ -23,11 +23,21 @@ from bpreflight import exitcodes
 from bpreflight import input as input_mod
 from bpreflight import pipeline
 from bpreflight import thresholds
+from bpreflight.gs1 import dictionary as dictionary_mod
+from bpreflight.gs1 import vectors as vectors_mod
 from bpreflight.report import render_json, render_md
 
 PROG = "bpreflight"
 
 REPORT_FORMATS = ("json", "md")
+
+#: 内嵌数据装载失败一律走 exit 3（"字典缺失"是 §8.5 里明列的第三类 3）。
+DATA_ERRORS = (
+    input_mod.InputError,
+    thresholds.ThresholdError,
+    dictionary_mod.DictionaryError,
+    vectors_mod.VectorError,
+)
 
 #: 固定落点。**不含任何来自 argv 的成分** —— 这是 D20 的结构性要求。
 OUT_DIR = "out"
@@ -155,7 +165,7 @@ def _emit(argv, parser):
             strict_thresholds=args.strict_thresholds,
             with_timestamp=args.with_timestamp,
         )
-    except (input_mod.InputError, thresholds.ThresholdError) as exc:
+    except DATA_ERRORS as exc:
         sys.stderr.write("{}: error: {}\n".format(PROG, exc))
         return exitcodes.EXIT_USAGE
 
@@ -185,7 +195,7 @@ def _emit(argv, parser):
             _write_fixed(ORACLE_JSON, json_text)
             _write_fixed(ORACLE_MD, skip_text)
             sys.stdout.write(md_text)
-    except input_mod.InputError as exc:
+    except DATA_ERRORS as exc:
         sys.stderr.write("{}: error: {}\n".format(PROG, exc))
         return exitcodes.EXIT_USAGE
 

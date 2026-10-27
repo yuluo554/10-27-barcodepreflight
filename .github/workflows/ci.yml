@@ -63,3 +63,27 @@ jobs:
       - name: Package data is importable from the installed tree
         run: |
           python -c "from bpreflight import paths, thresholds; print(paths.DATA_DIR); thresholds.load_book()"
+      - name: Bundled GS1 dictionary + vectors are importable (M1)
+        run: |
+          python -c "from bpreflight.gs1 import dictionary; d = dictionary.load(); print(d.dict_version, len(d)); assert len(d) > 0"
+          python -c "from bpreflight.gs1 import vectors; print(sorted(vectors.identifier_lengths()))"
+      - name: Wheel contains the bundled data (package-data globs do not recurse)
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        run: |
+          python -m pip install build
+          python -m build --wheel --outdir /tmp/dist
+          python - <<'PY'
+          import glob, zipfile
+          whl = glob.glob('/tmp/dist/*.whl')[0]
+          names = set(zipfile.ZipFile(whl).namelist())
+          required = {
+              'bpreflight/data/vectors/gs1_vectors.json',
+              'bpreflight/data/vectors/dict_manifest.json',
+              'bpreflight/data/gs1-syntax-dictionary/gs1-syntax-dictionary.txt',
+              'bpreflight/data/gs1-syntax-dictionary/LICENSE',
+              'bpreflight/data/gs1-syntax-dictionary/NOTICE',
+          }
+          missing = sorted(required - names)
+          assert not missing, missing
+          print('wheel ok:', len(names), 'files')
+          PY

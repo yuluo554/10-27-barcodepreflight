@@ -7,14 +7,16 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：M0（计划与骨架）**。参数面、报告层、退出码与五道常驻门已就绪；
-判定层按 M1→M5 落地。骨架期 `check` 会**必然输出 `VERDICT: fail`**——因为没有判定层时
-报告 `pass` 等于撒谎（见 `plan/03` §二）。
+**状态：M1（数据先行）**。已落盘的是**数据层**：内嵌官方 GS1 AI 字典（commit 钉版、
+逐次运行校验哈希）+ **唯一**校验位实现 + 四个语义解释器（`req` / `ex` / `yymmd0` / `csum`）
++ GTIN/SSCC/日期/字符集/长度校验。**M2（符号合法性）与 M3（印刷可读性）未实现**，
+报告会在首屏 `SKIPPED:` 一栏里自己说（`module_not_implemented:M2/M3`）——不会让人把
+只做了数据层的结论读成"整个条码没问题"。
 
 | 里程碑 | 状态 | 说明 |
 | --- | --- | --- |
 | M0 | ✅ | 计划套件 + 五道门 + 可运行骨架（本地等价校验，未接远端） |
-| M1 | ⬜ | 数据层：内嵌官方字典 + 校验位 + 语义解释器 |
+| M1 | ✅ | 数据层：内嵌官方字典 + 校验位 + 语义解释器（本地等价校验，未接远端） |
 | M2 | ⬜ | 符号合法性 |
 | M3 | ⬜ | 印刷可读性（差异化核心） |
 | M4 | ⬜ | 报告与 CI 门禁 |
@@ -27,7 +29,7 @@ JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 | --- | --- | --- |
 | 生成 | JsBarcode / zint / python-barcode / BWIPP | **不做** |
 | 解码 | zxing / zxing-cpp / zbar | **不重造**，只在 M5 作可选 oracle |
-| GS1 AI 解析 | 官方 `gs1/gs1-syntax-engine`（lint 完整） | **不立项**，只内嵌官方字典驱动 M1 |
+| GS1 AI 解析 | 官方 `gs1/gs1-syntax-engine`（lint 完整） | **不立项**，只内嵌官方字典驱动 M1（整表当数据读，代码只做四个解释器） |
 | **印刷可读性审计** | 几乎空白 | **本项目**：参数域判定 + 可执行修复项 + CI 门禁 |
 
 ## 安装（开发态）
@@ -62,13 +64,34 @@ bpreflight check --input examples/spec-ean13.json --fail-on=error
 **首屏三段**（顺序与措辞是契约）：
 
 ```
+VERDICT: pass
+FINDINGS: ok=0 info=0 warn=0 error=0
+TOP FIX: none
+```
+
+下面是**真的会出问题**的输入（校验位错一位 + 月份 13），同样一个命令：
+
+```
 VERDICT: fail
-FINDINGS: ok=0 info=0 warn=0 error=1
-TOP FIX: ...
+FINDINGS: ok=0 info=0 warn=0 error=2
+TOP FIX: recompute_check_digit -> 09501101530003 digits
 ```
 
 **`--fail-on` 默认 `none`**：只报告不拦。要接 CI 请显式写 `--fail-on=error`——
 否则你的流水线会一直是绿的。
+
+### 数据层判什么（M1）
+
+| 判据 | 说明 |
+| --- | --- |
+| 校验位 | 单一实现（`gs1/checksum.py`），四官方向量 `02345673` / `416000336108` / `09501101530003` / `4006381333931` 全 PASS |
+| AI 表 | **内嵌官方字典**（Apache-2.0），整表 224 条目 → 541 个具体 AI；代码只做四个解释器，不自造 AI 表 |
+| `req` / `ex` | 组合校验：逗号 = 任一组满足（OR），`+` = 同一组全到（AND）；`ex` = 互斥 |
+| 日期 | `yymmd0` 允许 **DD=00**（= 当月最后一天，`info` 级并归一化）；月份/天数/闰年交给 `calendar.monthrange` |
+| 长度 / 字符集 | 按字典的组件规格（`N14` / `X..20` / `[X..16]`）逐段核对 |
+
+**它不假装会判的东西**（都进首屏 `SKIPPED:`）：`gcppos1/2`（要 GCP 分配库 = GEPIR 联网授权，
+属非目标）、字典点名但本棒未实现的 linter、以及 M2/M3 两个未落地模块。
 
 ### 退出码
 
@@ -97,11 +120,19 @@ TOP FIX: ...
   "bar_color": "#000000",
   "space_color": "#FFFFFF",
   "illumination": "red",
-  "magnification_pct": "100"
+  "magnification_pct": "100",
+  "gs1_element_string": "(01)04006381333931"
 }
 ```
 
 数值一律写成**定点字符串**（避免 JSON 浮点抖动，保证逐字节可复现）。
+
+**数据层面**（M1）二选一，两者都不给就是 `error: input_incomplete`（绝不会静默判成 pass）：
+
+- `gs1_element_string` —— 元素串，两种形态都收：
+  `"(01)09501101530003(10)BATCH1"`（HRI 括号形态）或
+  `"0109501101530003\u001d10BATCH1"`（FNC1 原生形态，`\u001d` 是 GS）；
+- `identifier` —— 裸标识（GTIN-8/12/13/14、SSCC-18），例如 `"09501101530003"`。
 
 ## 阈值为什么不是数字，而是数据
 
@@ -137,7 +168,8 @@ py -3.12 -m pytest -q                    # 全量测试
 | `plan/00-README总览.md` | 总览 / 决策记录 / 弃选项 / 承诺-证据台账 |
 | `plan/01-题目文档.md` | 题面：痛点、已占位矩阵、五模块任务、评分、边界 |
 | `plan/02` – `plan/06` | 架构 / 模块详设 / 数据计划 / 里程碑 / 交付对标 |
-| `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** |
+| `plan/HANDOFF-M2.md` | 下一棒交接单（当前事实与不动点） |
+| `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** + 内嵌字典身份（§3.1） |
 | `AGENTS.md` | 方法论锚点与门命令 |
 
 ## 边界（不做）
@@ -147,5 +179,7 @@ py -3.12 -m pytest -q                    # 全量测试
 
 ## 许可证
 
-Apache-2.0（见 `LICENSE`）。内嵌的 GS1 语法字典为 Apache-2.0，其许可与来源哈希随字典一同入库
-（M1 落地时补 `src/bpreflight/data/gs1-syntax-dictionary/NOTICE`）。
+Apache-2.0（见 `LICENSE`）。内嵌的 GS1 语法字典为 Apache-2.0，其许可、来源 URL 与快照哈希
+随字典一同入库：`src/bpreflight/data/gs1-syntax-dictionary/`（`LICENSE` 上游许可 +
+`NOTICE` 来源声明 + 正文），字典身份记在 `src/bpreflight/data/vectors/dict_manifest.json`，
+每次运行复算 sha256（不符即 exit 3）。

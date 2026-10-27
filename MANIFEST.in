@@ -5,6 +5,8 @@ include pyproject.toml
 
 # 白名单，不用 graft：sdist 自足性靠"解包即用"验证（M6）。
 recursive-include src/bpreflight/data *.json
+# M1 内嵌官方字典：正文 + 上游许可 + 来源声明（缺一个就违反 Apache-2.0 的归属要求）。
+recursive-include src/bpreflight/data/gs1-syntax-dictionary *.txt LICENSE NOTICE
 
 include plan/*.md
 include data/README.md

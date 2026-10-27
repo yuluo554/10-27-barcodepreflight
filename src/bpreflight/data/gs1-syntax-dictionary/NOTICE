@@ -1,0 +1,78 @@
+GS1 Barcode Syntax Dictionary — vendored third-party data
+=========================================================
+
+This directory contains an unmodified copy of the machine-readable GS1
+Barcode Syntax Dictionary, which drives the M1 data-layer checks in
+`src/bpreflight/gs1/dictionary.py`. The AI table is **read as data**; it is
+never hand-transcribed into code (see `plan/00` decision D1).
+
+Files
+-----
+
+  gs1-syntax-dictionary.txt   the AI table (unmodified upstream copy)
+  LICENSE                     Apache License 2.0 (upstream copy)
+
+Upstream
+--------
+
+  Repository  https://github.com/gs1/gs1-syntax-dictionary
+  Source path gs1-syntax-dictionary.txt
+  Snapshot    commit c63d8a12210dd0cfaceac4aae45ccf57b48eb15b
+              (committed 2026-08-29T06:07:59Z)
+  Retrieved   2026-10-27
+  License     Apache License 2.0
+
+The upstream file carries `# Release: UNSET` in its header, i.e. the tree is
+not at a tagged release. That is why the pinned identifier used by this
+project (`dict_version`, see `src/bpreflight/data/vectors/dict_manifest.json`)
+is derived from the commit sha plus the snapshot date rather than from an
+upstream version string.
+
+  dict_version = gs1-syntax-dictionary@c63d8a12210d-2026-08-29
+
+Integrity
+---------
+
+  sha256(gs1-syntax-dictionary.txt)
+    = 1ea02f4e3b81d3092e095987600e01c7fd55310f4da5181f5a070262ff6ffc94
+
+The same digest is recorded in `src/bpreflight/data/vectors/dict_manifest.json`
+and is re-verified on every run by `src/bpreflight/gs1/dictionary.py`; a
+mismatch raises `DictionaryError`, which the CLI maps to exit code 3
+("bundled dictionary missing or altered"). It is also recomputable by hand:
+
+  py -3.12 -c "import hashlib,io;print(hashlib.sha256(io.open('src/bpreflight/data/gs1-syntax-dictionary/gs1-syntax-dictionary.txt','rb').read()).hexdigest())"
+
+Attribution
+-----------
+
+  Copyright (c) 2020-2021 BWIPP project. https://bwipp.terryburton.co.uk/
+  Copyright (c) 2020-2021 Zint Project. https://zint.org.uk/
+  Copyright (c) 2021-2025 GS1 AISBL
+
+Licensed under the Apache License, Version 2.0. A copy of the license is
+included in this directory as `LICENSE`.
+
+Rules transcribed from the upstream reference linter sources
+------------------------------------------------------------
+
+The four semantic interpreters implemented in `src/bpreflight/gs1/validators.py`
+and the check-digit routine in `src/bpreflight/gs1/checksum.py` follow the
+upstream C reference implementations that live in the same snapshot under
+`src/lint_*.c`:
+
+  lint_csum.c        numeric check digit: weight starts at 3 when the length
+                     *including* the check digit is even, otherwise 1, then
+                     alternates left-to-right (the other weight is 4 - W);
+                     only data positions are summed; check = (10 - sum % 10) % 10
+  lint_yymmd0.c      YYMMDD, additionally permitting YYMM00 (unspecified day);
+                     uses a CURRENT_YEAR horizon to expand YY to a full year
+  lint_yyyymmd0.c    YYYYMMDD / YYYYMM00; month must be 01..12; day is compared
+                     against a leap-year-aware maximum, and DD = 00 is permitted
+  lint_cset82.c      CSET 82: !"%&'()*+,-./0-9:;<=>?A-Z_a-z
+  lint_cset39.c      CSET 39: #-/0-9A-Z
+  lint_csetnumeric.c digits only
+
+Those reference files are not copied into this repository (only the AI table
+is vendored data); they remain fetchable from the upstream repository at the
+commit pinned above.

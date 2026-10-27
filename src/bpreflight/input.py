@@ -29,6 +29,15 @@ SUPPORTED_SYMBOLS = (
 
 ILLUMINATIONS = ("white", "red", "ir")
 
+#: M1（数据层）判定所需的输入面：`gs1_element_string` 或裸 `identifier`，二选一。
+DATA_FIELDS = ("gs1_element_string", "identifier")
+
+#: M3（印刷层）判定所需的输入面。缺任一即 `input_incomplete`（§8.9 G3），
+#: **不静默补默认值**。
+PRINT_FIELDS = ("symbol", "x_dimension_mm", "target_dpi", "quiet_zone_mm")
+
+_STRING_FIELDS = ("gs1_element_string", "identifier")
+
 
 class InputError(Exception):
     """输入不可解析 / 不可接受。调用方一律映射为 exit 3。"""
@@ -98,6 +107,15 @@ def load_spec(path):
             )
         )
 
+    for field in _STRING_FIELDS:
+        value = payload.get(field)
+        if value is not None and not isinstance(value, str):
+            raise InputError(
+                "{!r} must be a string (got {})".format(field, type(value).__name__)
+            )
+        if value == "":
+            raise InputError("{!r} is empty; omit the field or supply a value".format(field))
+
     input_info = {
         "file": os.path.basename(path),
         "sha256": hashlib.sha256(raw).hexdigest(),
@@ -108,5 +126,4 @@ def load_spec(path):
 
 def missing_fields(payload):
     """M3 判定所需参数里缺了哪些（只报缺，不静默补默认值；§8.9 G3）。"""
-    required = ("symbol", "x_dimension_mm", "target_dpi", "quiet_zone_mm")
-    return [name for name in required if payload.get(name) is None]
+    return [name for name in PRINT_FIELDS if payload.get(name) is None]

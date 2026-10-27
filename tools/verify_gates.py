@@ -137,18 +137,35 @@ def m_layout_sections(m):
     m.replace("plan/04-数据计划.md", "## 二、真值纪律（本项目四条）", "## 二、纪律")
 
 
+def _pending_milestones(root):
+    """plan/05 状态表里当前仍是 ⬜ 的里程碑号（按出现序）。"""
+    found = []
+    for line in m_read(root, PLAN05).splitlines():
+        stripped = line.lstrip()
+        if not stripped.startswith("|") or "⬜" not in stripped:
+            continue
+        for token in stripped.split("|"):
+            token = token.strip().strip("*")
+            if token.startswith("M") and token[1:].isdigit():
+                found.append(int(token[1:]))
+                break
+    return found
+
+
+def m_read(root, rel):
+    with io.open(os.path.join(root, rel), "r", encoding="utf-8") as handle:
+        return handle.read()
+
+
 def m_layout_status(m):
-    """两态探测：有待办行 → 翻成 ✅；全已完成 → 翻回 ⬜（靶子与进度无关）。"""
-    status_text = m.read(PLAN05)
-    pending = [
-        line
-        for line in status_text.splitlines()
-        if line.lstrip().startswith("|") and "M" in line and "⬜" in line
-    ]
-    if pending:
-        m.set_status([PLAN05], 1, "⬜", "✅")
-    else:
-        m.set_status([PLAN05], 0, "✅", "⬜")
+    """两态探测：翻**任意一个还是 ⬜ 的**里程碑（只翻一个副本 → 必须红）。
+
+    靶子由当前进度算出，不写死里程碑号：写死 M1 会在 M1 ✅ 之后失效
+    （`references/methodology-binding.md` 假门族 ⑭「靶子过期」）。
+    """
+    pending = _pending_milestones(m.root)
+    assert pending, "plan/05 里已经没有 ⬜ 里程碑了 —— 这条变异失去了靶子"
+    m.set_status([PLAN05], pending[0], "⬜", "✅")
 
 
 def m_layout_handoffs(m):
@@ -157,18 +174,11 @@ def m_layout_handoffs(m):
     靶子由构造算出，不写死里程碑号：写死 M1 会在 M1 的交接单落盘后失效
     （`references/methodology-binding.md` 假门族 ⑭「靶子过期」的同族）。
     """
-    candidates = []
-    for milestone in range(1, 10):
-        if os.path.isfile(m.path("plan/HANDOFF-M{}.md".format(milestone))):
-            continue
-        text = m.read(PLAN05)
-        if any(
-            line.lstrip().startswith("|")
-            and "M{}".format(milestone) in line
-            and "⬜" in line
-            for line in text.splitlines()
-        ):
-            candidates.append(milestone)
+    candidates = [
+        milestone
+        for milestone in _pending_milestones(m.root)
+        if not os.path.isfile(m.path("plan/HANDOFF-M{}.md".format(milestone)))
+    ]
     assert candidates, "找不到任何'没有交接单的待办里程碑'（项目已全部完成？）"
     milestone = candidates[0]
 

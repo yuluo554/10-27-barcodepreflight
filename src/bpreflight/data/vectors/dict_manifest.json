@@ -1,0 +1,19 @@
+{
+  "schema": "bpreflight/dict_manifest/1",
+  "note": "Single source of truth for the vendored GS1 AI dictionary identity. `sha256` is recomputed on every run by gs1/dictionary.py; a mismatch is an installation error (exit 3), not a judgement.",
+  "path": "gs1-syntax-dictionary/gs1-syntax-dictionary.txt",
+  "sha256": "1ea02f4e3b81d3092e095987600e01c7fd55310f4da5181f5a070262ff6ffc94",
+  "dict_version": "gs1-syntax-dictionary@c63d8a12210d-2026-08-29",
+  "upstream": {
+    "repository": "https://github.com/gs1/gs1-syntax-dictionary",
+    "source_path": "gs1-syntax-dictionary.txt",
+    "commit": "c63d8a12210dd0cfaceac4aae45ccf57b48eb15b",
+    "commit_date": "2026-08-29T06:07:59Z",
+    "release_tag": null,
+    "release_note": "upstream header carries '# Release: UNSET' at this commit, so identity is commit-pinned",
+    "license": "Apache-2.0"
+  },
+  "fetched_at": "2026-10-27",
+  "line_count": 344,
+  "entry_count": 224
+}

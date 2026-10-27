@@ -48,3 +48,9 @@ CI 里这五条每条都是独立 step（见 `.github/workflows/ci.yml`）。
   走 AST 扫网络模块。
 - 禁止：把"未执行"写成已完成；在 tag 之后改代码面；把绝对路径写进入库文件
   （用法行写相对路径，绝对路径只出现在用户侧启动命令里）。
+- **内嵌官方字典是唯一第三方数据**（`src/bpreflight/data/gs1-syntax-dictionary/`，Apache-2.0）。
+  改动它等于改数据基座：必须同步 `src/bpreflight/data/vectors/dict_manifest.json` 的 `sha256`
+  与 `dict_version`（否则每次运行都会因摘要不符 exit 3）与 `NOTICE`。
+  复算：`py -3.12 -c "import hashlib,io;print(hashlib.sha256(io.open('src/bpreflight/data/gs1-syntax-dictionary/gs1-syntax-dictionary.txt','rb').read()).hexdigest())"`
+- **跑 CLI 要 `PYTHONPATH=src`**（或先 `pip install -e .`）：`py -3.12 -m bpreflight` 不会
+  自动看见 `src/` —— `pyproject.toml` 里 `pythonpath` 只对 pytest 生效。

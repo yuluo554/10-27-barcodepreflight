@@ -1,18 +1,21 @@
-"""随包数据：装好的包里必须能读到向量（决策 D15）。
+"""随包数据：装好的包里必须能读到向量与内嵌字典（决策 D15）。
 
 `package-data` 的 glob **不递归**，写成 `data/*` 会漏掉 `data/vectors/`
 （`references/release.md` 安装面条）。这条测试是那个坑的常驻防线。
+M1 又加了一层：`data/gs1-syntax-dictionary/` 是**目录**，glob 同样不递归。
 """
 
 import json
+import os
+
+import pytest
 
 from bpreflight import paths
 from bpreflight import thresholds
+from bpreflight.gs1 import dictionary, vectors
 
 
 def test_data_dir_exists():
-    import os
-
     assert os.path.isdir(paths.DATA_DIR), paths.DATA_DIR
 
 
@@ -69,3 +72,65 @@ def test_vectors_schema_version_is_pinned():
     for name in thresholds.THRESHOLD_FILES:
         doc = paths.load_vector(name)
         assert doc["schema"].startswith("bpreflight/")
+
+
+def test_every_shipped_vector_file_is_declared_and_readable():
+    """`THRESHOLD_FILES` 只管阈值；包内还有 gs1 向量与字典清单，必须都能读到。"""
+    for name in paths.VECTOR_FILES:
+        path = paths.vector_path(name)
+        assert os.path.isfile(path), "{} 不在包里（package-data 漏了？）".format(name)
+        if name.endswith(".json"):
+            with open(path, "r", encoding="utf-8") as handle:
+                assert json.load(handle), name
+
+
+# --------------------------------------------------------------------------- #
+# M1 内嵌官方字典
+# --------------------------------------------------------------------------- #
+
+
+def test_dictionary_text_is_shipped():
+    """字典正文必须随包（`package-data` 的 glob 不递归到子目录）。"""
+    manifest = dictionary.load_manifest()
+    path = dictionary.dictionary_path(manifest)
+    assert os.path.isfile(path), "字典正文不在包里: {}".format(manifest["path"])
+
+
+def test_dictionary_license_and_notice_are_shipped():
+    """Apache-2.0 的归属要求：上游许可与来源声明必须与正文同包。"""
+    for name in ("LICENSE", "NOTICE"):
+        path = os.path.join(paths.DICT_DIR, name)
+        assert os.path.isfile(path), "{} 缺失（许可归属要求）".format(path)
+    notice = open(os.path.join(paths.DICT_DIR, "NOTICE"), encoding="utf-8").read()
+    for token in ("Apache", "gs1/gs1-syntax-dictionary", "2026-10-27"):
+        assert token in notice, "NOTICE 缺 {!r}（上游许可 / 来源 URL / 快照日期）".format(token)
+
+
+def test_dictionary_loads_from_package_data():
+    doc = dictionary.load()
+    assert len(doc) > 0
+    assert doc.dict_version
+    assert doc.sha256
+
+
+def test_gs1_vectors_load_from_package_data():
+    doc = vectors.load()
+    assert doc["checksum"]["vectors"]
+    assert vectors.load_century_resolution()
+    assert vectors.identifier_lengths()
+
+
+def test_altered_dictionary_is_refused(tmp_path):
+    """摘要不符 = 安装损坏 → 报错，而不是拿改过的表继续判（`plan/00` 台账行）。"""
+    manifest = dict(dictionary.load_manifest())
+    manifest["sha256"] = "0" * 64
+    with pytest.raises(dictionary.DictionaryError) as excinfo:
+        dictionary.load(manifest)
+    assert "digest mismatch" in str(excinfo.value)
+
+
+def test_missing_dictionary_is_refused(tmp_path):
+    manifest = dict(dictionary.load_manifest())
+    manifest["path"] = "gs1-syntax-dictionary/does-not-exist.txt"
+    with pytest.raises(dictionary.DictionaryError):
+        dictionary.load(manifest)

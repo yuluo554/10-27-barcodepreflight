@@ -1,0 +1,142 @@
+{
+  "schema": "bpreflight/gs1_vectors/1",
+  "note": "M1 vectors. Truth discipline (data/README.md §4.3): a vector stores the INPUT plus the EXPECTED result, and the test recomputes the expectation instead of trusting a stored string. Check-digit rows carry data digits + the official complete vector; the expected digit is re-derived from data_digits by gs1/checksum.py on every test run.",
+  "checksum": {
+    "algorithm": {
+      "source": "gs1-syntax-dictionary/src/lint_csum.c @c63d8a12210d (Apache-2.0)",
+      "quote": "weight = data_len % 2 == 0 ? 3 : 1; ... parity += weight * (data[pos] - '0'); weight = 4 - weight; ... parity = (10 - parity % 10) % 10;",
+      "rule": "the starting weight is decided by the parity of the length INCLUDING the check digit (even -> 3, odd -> 1), then alternates left to right; the alternate weight is 4 - W (not 6 - W); only data positions are summed",
+      "canonical_form": "data/README.md §8.1"
+    },
+    "vectors": [
+      {
+        "data_digits": "0234567",
+        "official_vector": "02345673",
+        "source": "lint_csum.c UNIT_TEST_PASS(\"02345673\")"
+      },
+      {
+        "data_digits": "41600033610",
+        "official_vector": "416000336108",
+        "source": "lint_csum.c UNIT_TEST_PASS(\"416000336108\")"
+      },
+      {
+        "data_digits": "0950110153000",
+        "official_vector": "09501101530003",
+        "source": "GTIN-14 official sample; data/README.md §4.2"
+      },
+      {
+        "data_digits": "400638133393",
+        "official_vector": "4006381333931",
+        "source": "EAN-13 official sample; data/README.md §4.2"
+      }
+    ],
+    "negative": [
+      {
+        "string": "12345673",
+        "source": "lint_csum.c UNIT_TEST_FAIL(..., INCORRECT_CHECK_DIGIT)"
+      },
+      {
+        "string": "416000336109",
+        "source": "lint_csum.c UNIT_TEST_FAIL(..., INCORRECT_CHECK_DIGIT)"
+      }
+    ]
+  },
+  "yymmd0": {
+    "rule": {
+      "source": "gs1-syntax-dictionary/src/lint_yymmd0.c + lint_yyyymmd0.c @c63d8a12210d (Apache-2.0)",
+      "quote": "DST: if (GS1_LINTER_UNLIKELY(DD > maxdd)) /* Permit \"00\" */ ... UNIT_TEST_PASS(gs1_lint_yymmd0, \"200600\"); /* dd=00 permitted */",
+      "semantics": "YYMMDD with DD=00 permitted, meaning the last day of that month; the month must be 01..12; the day is checked against a leap-year-aware month length",
+      "canonical_form": "data/README.md §3 (yymmd0 章节) 与 §8.1 之后的日期口径"
+    },
+    "century_resolution": {
+      "reference_year_yy": 21,
+      "century_window": 50,
+      "centuries": {"high": 19, "mid": 20, "low": 21},
+      "source": "lint_yymmd0.c: #define CURRENT_YEAR 21, then 'YY - CURRENT_YEAR >= 51 -> 19YY', '> -50 -> 20YY', else 21YY",
+      "why_pinned": "the upstream default is a compile-time constant; using the system clock instead would make the report non-deterministic (plan/00 K10 keeps the clock out of the report)"
+    },
+    "cases": [
+      {"value": "251200", "ai": "17", "expect": "dd00", "normalized": "2025-12-31", "source": "plan/05 M1 DoD：DD=00 必须归一到当月最后一天"},
+      {"value": "251301", "ai": "17", "expect": "invalid_date", "source": "plan/05 M1 DoD：MM=13 必须 invalid_date（证明 DD=00 特例没把日期校验全关）"},
+      {"value": "200229", "ai": "17", "expect": "ok", "normalized": "2020-02-29", "source": "lint_yymmd0.c UNIT_TEST_PASS(\"200229\")（2020 闰年）"},
+      {"value": "190229", "ai": "17", "expect": "invalid_date", "source": "lint_yymmd0.c UNIT_TEST_FAIL(\"190229\", ILLEGAL_DAY)（2019 非闰年）"},
+      {"value": "200230", "ai": "17", "expect": "invalid_date", "source": "lint_yymmd0.c UNIT_TEST_FAIL(\"200230\", ILLEGAL_DAY)"},
+      {"value": "201231", "ai": "17", "expect": "ok", "normalized": "2020-12-31", "source": "lint_yymmd0.c UNIT_TEST_PASS(\"201231\")"},
+      {"value": "201232", "ai": "17", "expect": "invalid_date", "source": "lint_yymmd0.c UNIT_TEST_FAIL(\"201232\", ILLEGAL_DAY)"},
+      {"value": "240200", "ai": "17", "expect": "dd00", "normalized": "2024-02-29", "source": "DD=00 在闰年二月必须给 29 天（calendar.monthrange 路径）"},
+      {"value": "230200", "ai": "17", "expect": "dd00", "normalized": "2023-02-28", "source": "DD=00 在平年二月必须给 28 天"},
+      {"value": "250131", "ai": "17", "expect": "ok", "normalized": "2025-01-31", "source": "普通有效日期对照"}
+    ]
+  },
+  "identifier": {
+    "note": "Bare identifier families M1 validates on their own (check digit + length + charset). GTIN-14 / SSCC-18 share the 18-digit and 14-digit lengths used by the official vectors.",
+    "lengths": {
+      "8": "GTIN-8",
+      "12": "GTIN-12 (UPC-A)",
+      "13": "GTIN-13 (EAN-13)",
+      "14": "GTIN-14",
+      "18": "SSCC-18"
+    },
+    "source": "data/README.md §4.2 official vectors + plan/01 §M1 identifier list"
+  },
+  "req": {
+    "rule": {
+      "source": "gs1-syntax-dictionary.txt 行内 req= 属性 @c63d8a12210d",
+      "quote": "10    ?  X..20   req=01,02,03,8006,8026   /   250   ?  X..30   req=01+21,03+21,8006+21",
+      "semantics": "comma separates OR groups; '+' inside a group means all-of (AND); a group is satisfied when every member AI is present; the attribute is satisfied when any group is"
+    },
+    "cases": [
+      {
+        "name": "OR unsatisfied: (10) alone",
+        "element_string": "(10)BATCH1",
+        "expect_findings": [{"id": "missing_required_ai", "ai": "10"}],
+        "source": "plan/05 M1 DoD：req OR 缺组"
+      },
+      {
+        "name": "OR satisfied: (01)+(10)",
+        "element_string": "(01)09501101530003(10)BATCH1",
+        "expect_findings": [],
+        "source": "plan/05 M1 DoD：req OR 满足后不报"
+      },
+      {
+        "name": "AND unsatisfied: (250) alone",
+        "element_string": "(250)SEC1",
+        "expect_findings": [{"id": "missing_required_ai", "ai": "250"}],
+        "source": "plan/05 M1 DoD：req AND 缺项"
+      },
+      {
+        "name": "AND satisfied: (01)+(21)+(250)",
+        "element_string": "(01)09501101530003(21)SER1(250)SEC1",
+        "expect_findings": [],
+        "source": "plan/05 M1 DoD：req AND 满足后不报"
+      },
+      {
+        "name": "AND partially satisfied: (01)+(250) without (21)",
+        "element_string": "(01)09501101530003(250)SEC1",
+        "expect_findings": [{"id": "missing_required_ai", "ai": "250"}],
+        "source": "plan/05 M1 DoD：req AND 缺 (21) 必须报"
+      }
+    ]
+  },
+  "ex": {
+    "rule": {
+      "source": "gs1-syntax-dictionary.txt 行内 ex= 属性 @c63d8a12210d",
+      "quote": "01  *?  N14,csum,gcppos2  ex=255,37 dlpkey=22,10,21|235",
+      "semantics": "the listed AIs may not co-occur with this AI; an AI is not exclusive of itself even when it matches a pattern"
+    },
+    "cases": [
+      {
+        "name": "mutual exclusion: (01)+(255)",
+        "element_string": "(01)09501101530003(255)0950110153007",
+        "expect_findings": [{"id": "mutually_exclusive_ai", "ai": "01"}, {"id": "mutually_exclusive_ai", "ai": "255"}],
+        "source": "plan/05 M1 DoD：ex (01)+(255) 必须报（255 的值取 csum 自洽的 13 位，避免混入别的 finding）"
+      },
+      {
+        "name": "no conflict: (01) alone",
+        "element_string": "(01)09501101530003",
+        "expect_findings": [],
+        "source": "plan/05 M1 DoD：ex 单 (01) 不报"
+      }
+    ]
+  }
+}

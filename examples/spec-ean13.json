@@ -14,5 +14,6 @@
   "bar_color": "#000000",
   "space_color": "#FFFFFF",
   "illumination": "red",
-  "magnification_pct": "100"
+  "magnification_pct": "100",
+  "gs1_element_string": "(01)04006381333931"
 }

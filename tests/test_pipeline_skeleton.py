@@ -1,7 +1,8 @@
-"""编排层：骨架期的诚实、阈值三态、不可判通道。
+"""编排层：判定层的诚实（退役后仍然成立）、阈值三态、不可判通道。
 
-这些是"骨架不能靠没有 findings 冒充 pass"与"未核阈值降级"的常驻断言。
-M1 落地时 `implementation_pending` 退役，第一条测试要随之改为"不存在"。
+M1 落地时 `implementation_pending` 退役（`plan/00` D17 的到期条款）。退役**不是**
+把两条测试删掉，而是换成两条更强的：①那个 id 全仓不再出现；②`pass` 只在真有判定
+发生时可能出现——没有判定时必须是 `input_incomplete`(error) 或 `skipped`。
 """
 
 import json
@@ -11,6 +12,12 @@ import pytest
 
 from bpreflight import pipeline
 from bpreflight import thresholds
+
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+#: M0 骨架用的占位判定 id。M1 同提交退役——**这个名字不该再出现**（见下）。
+RETIRED_PENDING_ID = "implementation_pending"
 
 
 def _payload(**overrides):
@@ -30,18 +37,87 @@ def _payload(**overrides):
     return base
 
 
-def test_skeleton_never_reports_pass():
-    """M0 没有判定层：空 findings 会派生 pass，那是撒谎（决策 D16）。"""
-    report = pipeline.run(_payload(), {"file": "spec.json", "sha256": "ab", "mode": "params"})
-    assert report.verdict == "fail"
-    assert any(f.id == pipeline.PENDING_ID for f in report.findings)
+def _clean_payload():
+    """一条语法与校验位都干净的 GS1 元素串：M1 真判过且判没问题。"""
+    return {"schema": "bpreflight/spec/1", "gs1_element_string": "(01)09501101530003"}
 
 
-def test_pending_finding_is_an_error_with_actionable_fix():
+def test_pending_finding_is_retired():
+    """M1 落地：`implementation_pending` 必须消失，而且不能再从任何入口冒出来。"""
+    report = pipeline.run(_payload(), {"file": "spec.json", "sha256": "ab"})
+    assert not any(f.id == RETIRED_PENDING_ID for f in report.findings)
+    report = pipeline.run(_clean_payload(), {"file": "spec.json"})
+    assert not any(f.id == RETIRED_PENDING_ID for f in report.findings)
+
+    # 源码面也扫一遍：退役的 id 不许作为**字符串字面量**继续躺在 src/ 里
+    # （"改个名字接着用"是最常见的假退役）。判据走 AST 常量，注释与文档
+    # 里提到这个名字是允许的——那正是在记录它已经退役。
+    import ast
+
+    literals = []
+    for path in sorted((REPO_ROOT / "src").rglob("*.py")):
+        if "__pycache__" in str(path):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and node.value == RETIRED_PENDING_ID:
+                literals.append("{}:{}".format(path.relative_to(REPO_ROOT), node.lineno))
+    assert literals == [], "退役的 id 仍作为字符串字面量存在: {}".format(literals)
+
+
+def test_pass_only_with_a_real_judgement():
+    """两条一起才成立：没判定 ⇒ 不 pass；真判过且干净 ⇒ 允许 pass。"""
+    # (1) 输入里没有任何可判的数据面 → 必须 error: input_incomplete，绝不 pass。
+    blind = pipeline.run({"schema": "bpreflight/spec/1"}, {"file": "spec.json"})
+    assert blind.verdict != "pass"
+    incomplete = [f for f in blind.findings if f.id == "input_incomplete"]
+    assert incomplete, "缺数据面时必须产 input_incomplete，而不是靠空 findings 冒充 pass"
+    assert incomplete[0].severity == "error"
+    joined = incomplete[0].observed
+    for field in ("gs1_element_string", "identifier"):
+        assert field in joined, "input_incomplete 必须点名缺哪个字段（G3）"
+
+    # (2) 真有判定（M1 判过一条干净的元素串）→ pass 是允许的。
+    clean = pipeline.run(_clean_payload(), {"file": "spec.json"})
+    assert clean.findings == ()
+    assert clean.verdict == "pass"
+
+
+def test_input_incomplete_finding_has_actionable_fix():
+    """G3 的 error 也要给可执行修复（决策 D9 不因模块不同而放宽）。"""
+    blind = pipeline.run({"schema": "bpreflight/spec/1"}, {"file": "spec.json"})
+    finding = [f for f in blind.findings if f.id == "input_incomplete"][0]
+    assert finding.severity == "error"
+    assert finding.fix["to"]
+    assert finding.fix["unit"]
+
+
+def test_unimplemented_modules_are_announced_not_silent():
+    """M2/M3 未落地：报告必须把这件事标出来（`skipped`），不能让人读成"全都判过了"。"""
     report = pipeline.run(_payload(), {"file": "spec.json"})
-    pending = [f for f in report.findings if f.id == pipeline.PENDING_ID][0]
-    assert pending.severity == "error"
-    assert pending.fix["to"]
+    assert "module_not_implemented:M2" in report.skipped
+    assert "module_not_implemented:M3" in report.skipped
+
+
+def test_reference_engine_absence_is_declared():
+    """`plan/05` M1 DoD：没交给官方 gs1-syntax-engine 对照过，就如实登记。"""
+    report = pipeline.run(_clean_payload(), {"file": "spec.json"})
+    assert "reference_engine_absent" in report.skipped
+
+
+def test_thresholds_and_dictionary_identity_are_in_the_report_header():
+    """报告头带 `dict_version` / `dict_sha256`，且 sha256 可独立复算。"""
+    import hashlib
+
+    from bpreflight.gs1 import dictionary
+
+    report = pipeline.run(_clean_payload(), {"file": "spec.json"})
+    assert report.tools["dict_version"]
+    manifest = dictionary.load_manifest()
+    with open(dictionary.dictionary_path(manifest), "rb") as handle:
+        recomputed = hashlib.sha256(handle.read()).hexdigest()
+    assert report.tools["dict_sha256"] == recomputed
+    assert report.tools["dict_version"] == manifest["dict_version"]
 
 
 def test_unverified_thresholds_are_surfaced_in_first_screen():
