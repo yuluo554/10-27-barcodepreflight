@@ -1,0 +1,54 @@
+{
+  "schema": "bpreflight/quiet_zone/1",
+  "note": "占位默认值，全部 status=unverified。任何文档与报告都不得把它们写成规范要求（data/README.md §5 P6、§8.2）。落地核对 GenSpec 原表后改 status + verified_at。",
+  "symbols": {
+    "ean13": {
+      "left": {"modules_min": 11, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 7, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "ean8": {
+      "left": {"modules_min": 7, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 7, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "upca": {
+      "left": {"modules_min": 9, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 9, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "code128": {
+      "left": {"modules_min": 10, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 10, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "gs1-128": {
+      "left": {"modules_min": 10, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 10, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "code39": {
+      "left": {"modules_min": 10, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 10, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 0, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "datamatrix": {
+      "left": {"modules_min": 1, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 1, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 1, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 1, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    },
+    "qr": {
+      "left": {"modules_min": 4, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "right": {"modules_min": 4, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "top": {"modules_min": 4, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"},
+      "bottom": {"modules_min": 4, "source": "placeholder: GenSpec not retrieved (iso.org 403)", "status": "unverified", "verified_at": null, "basis": "gen-spec"}
+    }
+  }
+}

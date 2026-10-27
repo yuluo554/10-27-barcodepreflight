@@ -204,7 +204,7 @@
 
 ## 五、印刷数值：二手标注表（⚠️ 全部须核对 GenSpec 原表）
 
-> **纪律**：下表每一项都必须带 `source` 与 `status`。**没有任何一项是本轮直接核实的一手 GenSpec 原文**。M3 的阈值**全部从版本化数据文件读取**（`data/vectors/*.json`），代码里不出现裸数字；每个阈值在数据文件里带 `source` / `status` / `verified_at` 三字段。
+> **纪律**：下表每一项都必须带 `source` 与 `status`。**没有任何一项是本轮直接核实的一手 GenSpec 原文**。M3 的阈值**全部从版本化数据文件读取**（`src/bpreflight/data/vectors/*.json`），代码里不出现裸数字；每个阈值在数据文件里带 `source` / `status` / `verified_at` 三字段。
 
 | # | 数值 / 判据 | 值 | 来源 | 状态 | 处置 |
 |---|---|---|---|---|---|
@@ -213,7 +213,7 @@
 | P3 | EAN-13 / UPC-A 条高 | **22.85 mm @ X = 0.330 mm ⇒ 69.24 模块** | 自洽换算（22.85 / 0.330 = 69.24），非独立一手 | ⚠️ | 与 P1 联动的派生值；核 GenSpec 后固化 |
 | P4 | 每模块点数 | `dots_per_module = X_mm / 25.4 × DPI` | **本工具定义的工程判据**（栅格混叠探针），非标准条款 | — | `< 2.0` → `warn`（高风险栅格混叠）；`< 1.5` → `error` |
 | P5 | 条/空颜色可比性 | 红条 + **红光源/红滤镜** → 该通道反射率差 ≈ 0 → 不可读；红条 + **白光无滤镜** 不属此类，走亮度项（`#C8102E` vs 白底 `contrast_ratio = 5.88`，代理实算） | 物理常识 + 条/空反射率对比的定义；分级术语源自 ISO/IEC 15416 ⚠️ 编号未核实；亮度阈值 4.5/3.0 为工程判据 | ⚠️ | 按"亮度对比 + 波长通道"两项判定，**两项不合并**，见 §8.4 |
-| P6 | 静区模块数 | **本工具不硬编码**：按符号类别从 `data/vectors/quiet_zone.json` 读取，每项带 `source`/`status` | 各符号规范表（本轮**未取得**，iso.org 403 / gs1.org 403） | ⚠️ | 默认值全部标 `status: "unverified"`；`--strict-thresholds` 模式拒用未核值 |
+| P6 | 静区模块数 | **本工具不硬编码**：按符号类别从 `src/bpreflight/data/vectors/quiet_zone.json` 读取，每项带 `source`/`status` | 各符号规范表（本轮**未取得**，iso.org 403 / gs1.org 403） | ⚠️ | 默认值全部标 `status: "unverified"`；`--strict-thresholds` 模式拒用未核值 |
 
 > **P6 是本题最重要的工程约束**：静区模块数是"印刷可读性"最常出问题的项，但本轮**一个都没核实到**。因此 M3 **不写死**静区阈值，而是把它做成**带来源标签的数据**。这样工具在阈值未核时仍然可用（判定结果标 `threshold_status: unverified`），且永远不会把传闻伪装成标准。
 
@@ -280,14 +280,14 @@ check = (10 - sum % 10) % 10
 | 阈值 | `quiet_zone_insufficient` | `qz_modules < modules_min` | 是 | `verified→error` / `unverified→warn` |
 | 贴近 | `quiet_zone_marginal` | `modules_min <= qz_modules < modules_min × 1.2` | 是 | `warn` |
 
-- 阈值来源：`data/vectors/quiet_zone.json[symbol_class][side]`，字段 `{modules_min, source, status, verified_at}`。
+- 阈值来源：`src/bpreflight/data/vectors/quiet_zone.json[symbol_class][side]`，字段 `{modules_min, source, status, verified_at}`。
 - **结构档是本模块的"零标准"锚点**：`quiet_zone_absent` 不依赖任何未核数字，因此**在任何阈值状态下都是 `error`**，也是 M3 的第一优先验收用例（对应 BinaryEye #616 的"静区不再生成"）。
 - **未核阈值兜底**：若阈值 `status != "verified"`，报告条目必须带 `threshold_status: "unverified"`，且**不得**在 CI 门禁里按 `error` 拦（降为 `warn`）——避免用未核数字卡住别人的流水线。`--strict-thresholds` 时改为 `error` 并在报告首屏标注。
 - **降级的适用边界（重要）**：`status` 只属于**「标准数值，本轮未核实」**这一类（`basis: "gen-spec"`）：静区模块数、放大率区间、名义 X、条高模块比。`basis: "engineering-heuristic"` 的判据（**DPI 每模块点数**、**颜色亮度/波长对比**）**没有 `status` 字段、不参与降级**，其 `severity` 恒定。混淆这两类会让"未核"变成万能挡箭牌。
 
 ### 8.3 X-dimension / 放大率 / DPI
 
-- `magnification_pct = x_dimension_mm / nominal_x_mm × 100`（`nominal_x_mm` 来自 `data/vectors/gen_spec.json`）。
+- `magnification_pct = x_dimension_mm / nominal_x_mm × 100`（`nominal_x_mm` 来自 `src/bpreflight/data/vectors/gen_spec.json`）。
 - 判定：`magnification_pct < 80` → `warn: magnification_below_range`；`> 200` → `warn: magnification_above_range`；`<= 0` 或字段缺失 → `error: x_dimension_missing`。
 - `dots_per_module = x_dimension_mm / 25.4 × DPI`。
 - 判定：`dots_per_module < 1.5` → `error: raster_alias_high_risk`；`< 2.0` → `warn: raster_alias_risk`；`>= 2.0` → `ok`。
@@ -422,4 +422,4 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 - 官方依据：`gs1/gs1-syntax-dictionary`（Apache-2.0）、`gs1/gs1-syntax-engine`、（可选）`ref.gs1.org` JSON-LD。
 - 需求原话：StackOverflow 问题页 / GitHub issue，按编号引用（见 `plan/01-题目文档.md` §2.4）。
 - 任何引用若与页面现状不符，**以页面现状为准**，并更新本文件（记更新日期）。
-- **本文件改动必须先于或同提交于代码改动**；阈值类改动须同时更新 `data/vectors/*.json` 的 `status` 与 `verified_at`。
+- **本文件改动必须先于或同提交于代码改动**；阈值类改动须同时更新 `src/bpreflight/data/vectors/*.json` 的 `status` 与 `verified_at`。

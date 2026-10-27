@@ -1,0 +1,11 @@
+include LICENSE
+include README.md
+include AGENTS.md
+include pyproject.toml
+
+# 白名单，不用 graft：sdist 自足性靠"解包即用"验证（M6）。
+recursive-include src/bpreflight/data *.json
+
+include plan/*.md
+include data/README.md
+include tools/*.py

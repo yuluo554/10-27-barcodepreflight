@@ -1,0 +1,58 @@
+{
+  "schema": "bpreflight/gen_spec/1",
+  "note": "占位默认值，全部 status=unverified。二手来源见 data/README.md §5 P1-P3；任何文档与报告都不得把 value 写成规范要求。落地核对 GenSpec 原表后改 status + verified_at。",
+  "values": {
+    "nominal_x_mm": {
+      "value": "0.330",
+      "source": "secondary: industry-common value, GenSpec table not retrieved (gs1.org 403)",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
+    },
+    "magnification_min_pct": {
+      "value": "80",
+      "source": "secondary: seen only in a third-party project source, GenSpec table not retrieved",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
+    },
+    "magnification_max_pct": {
+      "value": "200",
+      "source": "secondary: seen only in a third-party project source, GenSpec table not retrieved",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
+    },
+    "bar_height_mm_ean13": {
+      "value": "22.85",
+      "source": "derived: 22.85 / 0.330 = 69.24 modules, self-consistent but not independently sourced",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
+    },
+    "bar_height_modules_min_ean13": {
+      "value": "69.24",
+      "source": "derived from bar_height_mm_ean13 / nominal_x_mm",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
+    }
+  },
+  "engineering_heuristics": {
+    "note": "本工具自定判据，不是标准条款；没有 status 字段，不参与未核阈值降级（data/README.md §8.2 末条）。",
+    "dots_per_module": {
+      "warn_below": "2.0",
+      "error_below": "1.5",
+      "basis": "engineering-heuristic"
+    },
+    "contrast_ratio": {
+      "error_below": "3.0",
+      "warn_below": "4.5",
+      "basis": "engineering-heuristic"
+    },
+    "wavelength_reflectance_delta_min": {
+      "value": "0.20",
+      "basis": "engineering-heuristic"
+    }
+  }
+}

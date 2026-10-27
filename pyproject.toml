@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bpreflight"
+description = "Barcode pre-press scanability auditor: judge whether a barcode can be scanned from generation parameters alone (no image capture)."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [{ name = "yuluo554" }]
+keywords = ["barcode", "gs1", "preflight", "print", "quiet-zone", "x-dimension"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Manufacturing",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Printing",
+  "Topic :: Software Development :: Quality Assurance",
+]
+dependencies = []
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "build>=1.0"]
+
+[project.scripts]
+bpreflight = "bpreflight.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yuluo554/10-27-barcodepreflight"
+
+[tool.setuptools.dynamic]
+version = { attr = "bpreflight.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# 逐目录声明：package-data 的 glob 不递归，写成 "bpreflight/data/*" 会漏掉子目录。
+bpreflight = [
+  "data/*.json",
+  "data/vectors/*.json",
+  "data/gs1-syntax-dictionary/*",
+  "data/gs1-syntax-dictionary/*/*",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"

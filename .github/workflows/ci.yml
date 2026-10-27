@@ -1,0 +1,65 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    name: gates (layout / desensitized / thresholds / python-floor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: "Sprint layout gate (methodology binding)"
+        run: python tools/check_sprint_layout.py
+      - name: "Desensitization gate (no host paths / usernames / local proxy)"
+        run: python tools/check_desensitized.py
+      - name: "Threshold literal gate (no bare thresholds in src/)"
+        run: python tools/check_thresholds.py
+      - name: "Python floor gate (AST: nothing above requires-python)"
+        run: python tools/check_python_floor.py
+      - name: "Gate self-check (mutation verification: every gate must go red)"
+        run: python tools/verify_gates.py
+
+  tests:
+    name: tests (py${{ matrix.python }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: "3.8"
+          - os: ubuntu-latest
+            python: "3.12"
+          - os: windows-latest
+            python: "3.12"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install package + test deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          python -m pip install -e .
+      - name: Run tests
+        run: python -m pytest -q
+      - name: Smoke (installed CLI: help + example run)
+        shell: bash
+        run: |
+          bpreflight --help > /dev/null
+          bpreflight check --input examples/spec-ean13.json > /dev/null
+      - name: Package data is importable from the installed tree
+        run: |
+          python -c "from bpreflight import paths, thresholds; print(paths.DATA_DIR); thresholds.load_book()"

@@ -94,3 +94,8 @@ release/
 .tmp/
 .tmp_*/
 tmp/
+
+# 本机工具状态（agent/skill 运行时产物，不是仓库内容）
+.mimosa/
+.claude/
+.zcode/
