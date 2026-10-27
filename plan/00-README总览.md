@@ -6,7 +6,7 @@
 - **产出**：仓库 `10-27-barcodepreflight`，CLI 入口 `bpreflight`
 - **形态**：**纯本地 CLI**（零网络、参数驱动；开源解码器只作可选 oracle）
 - **基准日**：2026-10-27｜**代理实际检索窗口 2026-10-27T10:56Z – 11:14Z**
-- **当前状态**：**M2 符号合法性已完成**（八符号 profile 数据表 + 字符集/长度/模式三段判定 + `encoding_plan` 切分唯一 + 跨符号等价性 3 组；全部规则 `unverified`，未核判定降级为 `warn`）；M1 数据先行已完成；**M3–M6 未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
+- **当前状态**：**M3 印刷可读性已完成**（五项检查 + `fix` 必填 + 阈值三态 + `tools/gen_fixtures.py`）；M1 数据先行、M2 符号合法性均已完成；**M4–M6 未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
 - **定位宣言**："生成器是红海（JsBarcode **5896★** / zint **821★** / python-barcode **658★** / BWIPP **504★**），GS1 AI 解析也已被官方参考实现占住（`gs1/gs1-syntax-engine` **52★**）。**空白在'印出来扫得出吗'这一层**：从生成参数（符号类型、X-dimension、静区、目标 DPI、条/空颜色、条高、放大率）直接判定'这个条码印出来会扫不出'并给可执行修复项——**不依赖图像采集**。"
 
 ---
@@ -15,27 +15,28 @@
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v4（M2 收尾） |
+| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v5（M3 收尾） |
 | `plan/01-题目文档.md` | 十段式题面：头部 / 介绍 / 五模块任务 / 提交材料 / 评分 / 锚点 / 边界 | ✅ v1 |
-| `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v2（M2 收尾） |
-| `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v2（M2 收尾） |
-| `plan/04-数据计划.md` | 数据清单 / 真值纪律 / 阈值三态 / 生成与冻结 / 已知缺口 | ✅ v2（M2 收尾） |
-| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v3（M2 收尾） |
-| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D24 | ✅ v3（M2 收尾） |
+| `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v3（M3 收尾） |
+| `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v3（M3 收尾） |
+| `plan/04-数据计划.md` | 数据清单 / 真值纪律 / 阈值三态 / 生成与冻结 / 已知缺口 | ✅ v3（M3 收尾） |
+| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v4（M3 收尾） |
+| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D25 | ✅ v4（M3 收尾） |
 | `plan/HANDOFF-M1.md` | 第 1 棒交接单（七节） | ✅ v1（已收尾） |
 | `plan/HANDOFF-M2.md` | 第 2 棒交接单（七节） | ✅ v1（已收尾） |
-| `plan/HANDOFF-M3.md` | 第 3 棒交接单（七节） | ✅ v1 |
-| `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8，含 §8.10 符号可行性）** + **内嵌快照身份（§3.1）** | ✅ v3（M2 收尾） |
+| `plan/HANDOFF-M3.md` | 第 3 棒交接单（七节） | ✅ v1（已收尾） |
+| `plan/HANDOFF-M4.md` | 第 4 棒交接单（七节） | ✅ v1 |
+| `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8，含 §8.10 符号可行性）** + **内嵌快照身份（§3.1）** | ✅ v4（M3 收尾） |
 | `AGENTS.md` | 方法论锚点：布局门命令、强制布局清单、环境事实 | ✅ v1 |
-| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v3（M2 收尾） |
+| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v4（M3 收尾） |
 | `LICENSE` | Apache-2.0 全文 | ✅ v1 |
 | `.gitignore` | Python 标准模板 + `*.png` 等生成产物不入仓 | ✅ v1 |
 
-**待建（按里程碑产出，不预先占位）**：`src/bpreflight/print/`（M3）、`src/bpreflight/oracle/`（M5）、
-`tools/gen_fixtures.py`（M3）、`plan/RELEASE-M6.md`（M6）。
+**待建（按里程碑产出，不预先占位）**：`src/bpreflight/oracle/`（M5）、`plan/RELEASE-M6.md`（M6）。
 
-> `src/bpreflight/gs1/`（M1）、`src/bpreflight/data/gs1-syntax-dictionary/`（M1）与
-> `src/bpreflight/symbols/`（M2）**已落盘**，从"待建"移到上方。
+> `src/bpreflight/gs1/`（M1）、`src/bpreflight/data/gs1-syntax-dictionary/`（M1）、
+> `src/bpreflight/symbols/`（M2）、`src/bpreflight/print/`（M3）、`tools/gen_fixtures.py` + `fixtures/manifest.json`（M3）
+> **已落盘**，从"待建"移到上方。
 
 > 状态图例：✅ 已落盘 · 🟡 进行中 · ⬜ 待做。**状态列必须与里程碑同步翻转（同一提交内改）。**
 
@@ -93,20 +94,20 @@
 
 | 承诺项 | 素材来源 | 交付物内可达性 | 核验方式 | 状态 |
 |---|---|---|---|---|
-| 五模块 M1–M5 全部交付 | `plan/01` §3 | 源码 + 测试 | 各模块验收例逐条跑 | ⬜（已交付模块见 §六里程碑表） |
+| 五模块 M1–M5 全部交付 | `plan/01` §3 | 源码 + 测试 | 各模块验收例逐条跑 | 🟡 数据层 / 符号层 / 印刷层已交付；报告层待收尾、回读层可选（见 §六里程碑表） |
 | 校验位四向量全 PASS（且只有一个实现） | `data/README.md` §4（官方 `lint_csum.c` + 单测向量） | 内嵌 | `pytest tests/test_checksum.py`；源码里 `gs1_check_digit` 只定义一次（AST + 文本双判据） | ✅ M1 |
 | 校验位手算留痕可复核 | `data/README.md` §4.2 | 文档 | 逐行手算复现 | ✅（文档已落盘） |
 | AI 表来自官方字典（不自造） | `gs1-syntax-dictionary` Apache-2.0 | `src/bpreflight/data/gs1-syntax-dictionary/` + `data/vectors/dict_manifest.json` | 报告头含 `dict_version`；字典文件哈希与清单一致（每次运行复算） | ✅ M1 |
 | `yymmd0`（DD=00 → 当月最后一天）不被误判 | `data/README.md` §3；源码规则名 `lint_yymmd0` | M1 | 单测：`(17)251200` 不报 `invalid_date`，报 `dd00_last_day_of_month`（info）→ 2025-12-31；对照 `(17)251301` 必须报 `invalid_date` | ✅ M1 |
 | `req` 的 OR / AND 语义正确 | 字典原文 `req=01,02,03` / `req=01+21` | M1 | 两条单测（缺 OR 组 / 缺 AND 项） | ✅ M1 |
 | `ex` 互斥正确 | 字典原文 `ex=255,37` | M1 | 单测：`(01)`+`(255)` → `mutually_exclusive_ai` | ✅ M1 |
-| 静区为零可复现（BinaryEye #616 类）—**零标准数字锚点** | GitHub #616 原话 | M3 | fixture：`quiet_zone_mm=0` → `quiet_zone_absent`（恒 `error`，与阈值状态无关） | ⬜ |
-| 静区不足可复现（python-barcode #41 类） | GitHub #41 原话 + `src/bpreflight/data/vectors/quiet_zone.json` | M3 | fixture：`quiet_zone_mm=0.6, X=0.330`（`qz=1.818`）< 占位 `modules_min` → `quiet_zone_insufficient` + `fix.to = modules_min × X` | ⬜ |
-| 放大率边界逐条测 | `data/README.md` §8.3 | M3 | `0.2640`/`0.6600` 不报；`0.2639`/`0.6601` 报警 | ⬜ |
-| DPI 混叠可判 | `data/README.md` §8.3 | M3 | `X=0.330, DPI=120 → 1.559 → warn`；`DPI=100 → 1.299 → error`；`DPI=203 → 2.637 → ok` | ⬜ |
-| 红条 + 红光判不可读（且与亮度对比分列） | `data/README.md` §8.4 | M3 | 两个 `id` 不同，不合并 | ⬜ |
-| 未核阈值降级而非拦死 | 决策 D2 | M3 + M4 | 把 `status` 改 `unverified` 后同测试由 `error` 变 `warn`；`--strict-thresholds` 恢复 `error` | ⬜ |
-| `fix` 字段必填且给目标数值 | 决策 D9 | M3 | 测试断言每个 `warn`/`error` 的 `fix` 含 `to` 或 `min_delta` | ⬜ |
+| 静区为零可复现（BinaryEye #616 类）—**零标准数字锚点** | GitHub #616 原话 | M3 | fixture：`quiet_zone_mm=0` → `quiet_zone_absent`（恒 `error`，与阈值状态无关；verified/unverified 两态各测） | ✅ M3 |
+| 静区不足可复现（python-barcode #41 类） | GitHub #41 原话 + `src/bpreflight/data/vectors/quiet_zone.json` | M3 | fixture：`quiet_zone_mm=0.6, X=0.330`（`qz=1.818`）< 占位 `modules_min` → `quiet_zone_insufficient` + `fix.to = modules_min × X` | ✅ M3 |
+| 放大率边界逐条测 | `data/README.md` §8.3 | M3 | `0.2640`/`0.6600` 不报；`0.2639`/`0.6601` 报警 | ✅ M3 |
+| DPI 混叠可判 | `data/README.md` §8.3 | M3 | `X=0.330, DPI=120 → 1.559 → warn`；`DPI=100 → 1.299 → error`；`DPI=203 → 2.637 → ok`；边界四值逐条 | ✅ M3 |
+| 红条 + 红光判不可读（且与亮度对比分列） | `data/README.md` §8.4 | M3 | 两个 `id` 不同，不合并；`#C86E00`+红光两条并存 | ✅ M3 |
+| 未核阈值降级而非拦死 | 决策 D2 | M3 + M4 | 把 `status` 改 `unverified` 后同测试由 `error` 变 `warn`；`--strict-thresholds` 恢复 `error` | ✅ M3 |
+| `fix` 字段必填且给目标数值 | 决策 D9 | M3 | `tests/test_fix_contract.py`：18 条语料逐条断言 `fix` 含 `to`/`min_delta` + `unit`，且 `fix.to` 可由输入复算 | ✅ M3 |
 | 退出码矩阵全覆盖 | `data/README.md` §8.5 | M4 | `tests/test_exit_codes.py`：`--fail-on` 三档 × 三种问题态 + 三类用法错误，逐格一条 | ⬜ |
 | JSON / MD 同源（按 fingerprint 相等） | `data/README.md` §8.7 | M4 | `test_report.py::test_two_formats_same_findings` | ⬜ |
 | `fingerprint` 稳定、不含时间戳/路径 | `data/README.md` §8.7 | M4 | 两次独立 run 的 fingerprint 集合相等 | ⬜ |
@@ -115,8 +116,8 @@
 | 每模块 1 点样本 oracle 解不出 + M3 判 `raster_alias_high_risk` | `plan/01` §M5 | M5 | 双断言 | ⬜ |
 | 纯本地零网络（AST 扫网络导入） | 隐私红线 | 全 | `tests/test_no_network.py`（AST 扫 `socket`/`urllib`/`requests`/`http`） | ✅ M0 |
 | 阈值无裸字面量（除 `src/bpreflight/data/vectors/*.json`） | 决策 D12 | 全 | `py -3.12 tools/check_thresholds.py` 0 命中 | ✅ M0 |
-| 不可判（gray）六种情形全部有显式通道，且**不借用 `pass`** | `data/README.md` §8.9 | 全 | 每种情形一条测试，断言不出现 `verdict: pass` 且带对应 `threshold_status`/`skipped`/`info` | ⬜（数据层的三条通道已落，见 `plan/03` §三） |
-| 输入参数缺失时拒绝判定（不静默补默认值） | `data/README.md` §8.9 G3 | M3 | 缺 `x_dimension_mm` → `input_incomplete`（error），不出现任何 `quiet_zone_*` / `magnification_*` 结论 | ⬜ |
+| 不可判（gray）六种情形全部有显式通道，且**不借用 `pass`** | `data/README.md` §8.9 | 全 | 每种情形一条测试，断言不出现 `verdict: pass` 且带对应 `threshold_status`/`skipped`/`info` | 🟡 G1（未核降级）/ G3（缺参）/ G5（未建模材质）已落地；G2（需真实采集）/ G6（oracle 缺失）属回读层 |
+| 输入参数缺失时拒绝判定（不静默补默认值） | `data/README.md` §8.9 G3 | M3 | 缺 `x_dimension_mm` → `input_incomplete`（error），不出现任何 `quiet_zone_*` / `magnification_*` / `raster_*` 结论 | ✅ M3 |
 | 三态查证齐（✅/⚠️/⬜） | `data/README.md` | 文档 | 人工核对 + §9 未核清单 | ✅（骨架期） |
 | ISO 编号全部 ⚠️ 标注 | 决策 D4 | 文档 | `grep -n "ISO/IEC"` 逐条看是否有 ⚠️ | ✅（骨架期） |
 | 发布：tag + GitHub Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ |
@@ -163,7 +164,7 @@
 | **M0 · 计划与骨架** | 装订三件（`AGENTS.md` + 五道门 + `plan/00` 装订行）+ `plan/00`–`06` + 可运行 CLI 骨架 + 报告层 + 五道门 + CI | 五道门本地全绿且**变异验证逐条变红**；`pytest` 双解释器全绿；`bpreflight check` 可跑并产出确定性 JSON/MD；`plan/HANDOFF-M1.md` 落盘 | ✅ |
 | **M1 · 数据先行** | 内嵌官方 AI 字典（`gs1-syntax-dictionary` Apache-2.0）+ 四个语义解释器（`req`/`ex`/`yymmd0`/`csum`）+ 校验位向量集 + GTIN/SSCC/日期/字符集/长度校验 | 四个官方向量全 PASS 且**只有一个**校验位函数；`yymmd0`/`req`/`ex` 用例逐条过；`dict_version` 进报告头；`report.header.dict_sha256` 可复算 | ✅ |
 | **M2 · 符号合法性** | `symbol_profiles.json` 数据驱动 + 八符号的结构性可行性 + 容量/字符集/模式切换 + 跨符号等价性 | 跨符号等价性 3 组逐条有原因；`encoding_plan.segments` 切分唯一（`tie_break: longest-first`）；校验位不在 M2 复制第二份；`module_not_implemented:M2` 已收窄 | ✅ |
-| **M3 · 印刷可读性** | 五项检查（静区/放大率/DPI 混叠/条高/颜色）+ `fix` 必填 + 阈值外置带三态 | **`quiet_zone_absent`（零静区）恒 error 且不依赖任何未核数字**；`quiet_zone_insufficient` 按阈值状态升降；python-barcode #41 类场景可复现；放大率边界 4 值逐条测；DPI 四值边界逐条测；阈值项未核降级为 `warn` 且 `--strict-thresholds` 恢复 `error`（**DPI/颜色两项不参与降级**）；`tools/check_thresholds.py` 0 命中 | ⬜ |
+| **M3 · 印刷可读性** | 五项检查（静区/放大率/DPI 混叠/条高/颜色）+ `fix` 必填 + 阈值外置带三态 | **`quiet_zone_absent`（零静区）恒 error 且不依赖任何未核数字**；`quiet_zone_insufficient` 按阈值状态升降；python-barcode #41 类场景可复现；放大率边界 4 值逐条测；DPI 四值边界逐条测；阈值项未核降级为 `warn` 且 `--strict-thresholds` 恢复 `error`（**DPI/颜色两项不参与降级**）；`tools/check_thresholds.py` 0 命中 | ✅ |
 | **M4 · 报告与门禁** | JSON + MD 同源 + 退出码矩阵 + `--fail-on` + fingerprint | 退出码矩阵逐格全覆盖；两格式 `findings` 按 fingerprint 完全相等；首屏三段字面断言；零网络 AST 扫 0 命中 | ⬜ |
 | **M5 · 仿真回读（可选）** | 最小采样器 + zxing-cpp oracle + `agreement` 三态 | 每模块 1 点样本：oracle 解不出且 M3 判 `raster_alias_high_risk`（一致）；健康样本一致；红条+红光一致；`m3_laxer` 记为 bug；oracle 缺失标 `skipped: oracle_absent` | ⬜ |
 | **M6 · 发布** | 公开发布 | **DoD = `git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（tag 前落盘进 tag 树，"tag 时点事实 / tag 后追加事实"两栏）**；发布为 **GitHub 公开仓库**；许可证已落定（D7）；仓库名/包名重名已核对（D13） | ⬜ |
@@ -178,6 +179,15 @@
 > `verified_at`，本轮全部 `unverified`）、字符集/长度/模式三段判定、`encoding_plan` 切分唯一
 > （`tie_break: longest-first`）、跨符号等价性 3 组逐条有原因；`module_not_implemented:M2`
 > 同提交收窄为 M3 单条。未核规则的判定降级口径见 `data/README.md` §8.10。
+>
+> **兑现记录（2026-10-27）**：M3 已收尾——五项检查（`print/`）+ 阈值三态 + 缺参拒判 +
+> `tools/gen_fixtures.py`（31 件、位级自检、部分运行不改写全集）。三条设计取舍记在这里：
+> ① **零静区锚点用 `required` 而不是 `modules_min > 0`**——结构档不许由未核阈值推断出来，
+> 否则"唯一不需要标准数字的验收"会悄悄依赖上它；② **波长塌陷阈值从占位 0.20 提到 0.30**——
+> `#C8102E` 在红光下的实算差是 0.216，0.20 刚好判不出来，而 §8.4 把那个场景写成"不可读"；
+> ③ **白光不跑波长项**（它的 `channel` 是 `luminance`）——把"红条+白光"与"红条+红光"混在
+> 一条判据里，正是本项最常见的误判。`module_not_implemented` 表就此清空（M5 落地前由
+> `pipeline._module_skips` 这个登记点承担）。
 
 ---
 

@@ -31,6 +31,9 @@ GATES = {
     "thresholds": "tools/check_thresholds.py",
     "floor": "tools/check_python_floor.py",
     "ci": "tools/check_ci_workflow.py",
+    # `gen_fixtures.py --check` 是 M3 的第七道常规检查：它判"fixture 清单与判定行为
+    # 是否还一致"。放进这里是因为它的失败模式与门完全相同（该红时必须红）。
+    "fixtures": "tools/gen_fixtures.py --check",
 }
 
 CI_WORKFLOW = ".github/workflows/ci.yml"
@@ -105,11 +108,12 @@ class Mutator(object):
 
 
 def run_gate(root, gate):
-    script = os.path.join(root, GATES[gate])
+    parts = GATES[gate].split()
+    script = os.path.join(root, parts[0])
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     proc = subprocess.run(
-        [PY, "-X", "utf8", script],
+        [PY, "-X", "utf8", script] + parts[1:],
         cwd=root,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -206,7 +210,6 @@ def m_layout_gaps(m):
         "| 五模块判定层实现（M0 未完成） | 交付面主体 |",
     )
 
-
 def m_layout_gaps_file_ref(m):
     """阴性对照：缺口格里点名文件名必须**放行**（⑥ 的反向）。"""
     m.replace(
@@ -292,11 +295,16 @@ def m_layout_doc_tools_missing(m):
 
 
 def m_layout_doc_tools_stale(m):
-    """往 PENDING_TOOLS 塞一条"所属里程碑已 ✅"的过期登记 → 必须红。"""
+    """往 PENDING_TOOLS 塞一条"所属里程碑已 ✅"的过期登记 → 必须红。
+
+    靶子是 `PENDING_TOOLS = {}` 这个空表：M3 落地后表已清空（正确终态），
+    所以这里从空表出发注入一条过期登记。断言替换真的产生字节变化，
+    避免"表里本来就有那一行"让变异退化成 no-op。
+    """
     m.replace(
         "tools/check_sprint_layout.py",
-        '"tools/gen_fixtures.py": 3,',
-        '"tools/gen_fixtures.py": 3,\n    "tools/check_nonexistent.py": 0,',
+        "PENDING_TOOLS = {}",
+        'PENDING_TOOLS = {\n    "tools/check_nonexistent.py": 0,\n}',
     )
     m.append(PLAN05, "\n| 新门 | `tools/check_nonexistent.py` |\n")
 
@@ -326,6 +334,18 @@ def m_threshold_bare(m):
     m.append(
         "src/bpreflight/severity.py",
         "\n\ndef _leaked_threshold():\n    return 5.88\n",
+    )
+
+
+def m_threshold_bare_in_m3(m):
+    """M3 的检查模块同样在扫描面内：在 `print/` 里写裸阈值也必须红。
+
+    M3 新增了 7 个判定模块，最小的那种退化就是"顺手在 color.py 里写 0.30"——
+    这条变异证明 `print/` 确实被门扫到了，而不是门沿用了旧的文件清单。
+    """
+    m.append(
+        "src/bpreflight/print/color.py",
+        "\n\ndef _leaked_threshold():\n    return 0.30\n",
     )
 
 
@@ -413,6 +433,35 @@ def m_ci_negative_control(m):
     )
 
 
+def m_fixtures_drift(m):
+    """篡改清单里的期望 → `--check` 必须红（判定行为变了却没人重生成清单）。"""
+    text = m.read("fixtures/manifest.json")
+    assert '"verdict": "pass"' in text, "清单里没有 pass 期望 —— 变异靶子失效"
+    m.replace(
+        "fixtures/manifest.json",
+        '"verdict": "pass"',
+        '"verdict": "fail"',
+    )
+
+
+def m_fixtures_thresholds_identity(m):
+    """篡改阈值册身份 → 必须红（数据改了但清单没同提交重生成）。"""
+    text = m.read("fixtures/manifest.json")
+    marker = '"thresholds_sha256": "'
+    assert marker in text, "清单里没有 thresholds_sha256"
+    start = text.index(marker) + len(marker)
+    digest = text[start:start + 64]
+    assert len(digest) == 64, digest
+    m.replace("fixtures/manifest.json", '"thresholds_sha256": "{}"'.format(digest),
+              '"thresholds_sha256": "{}"'.format("0" * 64))
+
+
+def m_fixtures_negative_control(m):
+    """阴性对照：清单不动，`--check` 必须绿。"""
+    # 只碰一个与本门无关的文件，证明"没变异"时门确实是绿的。
+    m.append("plan/06-交付对标与决策.md", "\n")
+
+
 MUTATIONS = [
     # (label, gate, mutate, expect_red)
     ("L1 删 AGENTS.md", "layout", m_layout_files, True),
@@ -435,6 +484,7 @@ MUTATIONS = [
     ("D5 占位符形态（阴性对照，必须绿）", "desens", m_desens_placeholder, False),
     ("T1 src 里写裸阈值", "thresholds", m_threshold_bare, True),
     ("T2 结构性常量（阴性对照，必须绿）", "thresholds", m_threshold_struct_ok, False),
+    ("T3 M3 的 print/ 里写裸阈值", "thresholds", m_threshold_bare_in_m3, True),
     ("P1 3.10 的 match", "floor", m_floor_match, True),
     ("P2 3.9 的内建泛型注解", "floor", m_floor_builtin_generic, True),
     ("P3 合法 3.8 语法（阴性对照，必须绿）", "floor", m_floor_none, False),
@@ -443,6 +493,9 @@ MUTATIONS = [
     ("C3 两个门塞进同一个 step", "ci", m_ci_two_gates_one_step, True),
     ("C4 矩阵里删掉 3.8", "ci", m_ci_matrix_drop_py38, True),
     ("C5 合法形状（阴性对照，必须绿）", "ci", m_ci_negative_control, False),
+    ("F1 清单期望漂移", "fixtures", m_fixtures_drift, True),
+    ("F2 阈值册身份过期", "fixtures", m_fixtures_thresholds_identity, True),
+    ("F3 清单未动（阴性对照，必须绿）", "fixtures", m_fixtures_negative_control, False),
 ]
 
 

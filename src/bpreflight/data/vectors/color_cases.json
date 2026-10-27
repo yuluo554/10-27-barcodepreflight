@@ -1,0 +1,120 @@
+{
+  "schema": "bpreflight/color_cases/1",
+  "note": "条/空颜色的照明建模表 + 回归用例。判据本身是 engineering-heuristic（阈值在 gen_spec.json#engineering_heuristics），因此本文件**没有** status/verified_at 字段——工程判据不参与未核降级（data/README.md §8.2 末条、K8）。modelled=false 的照明不猜：产出 info: surface_effect_unmodeled（§8.9 G5）。",
+  "illuminations": {
+    "white": {
+      "modelled": true,
+      "channel": "luminance",
+      "source": "data/README.md §8.4；sRGB 相对亮度公式（WCAG 2.x 定义）",
+      "note": "宽谱：只按相对亮度比较；白光下没有定义良好的窄带反射率判据，因此不跑 wavelength 项（这正是「红条+白光」不走 collapse 的原因）"
+    },
+    "red": {
+      "modelled": true,
+      "channel": "red",
+      "source": "data/README.md §8.4（P5：红条 + 红光/红滤镜 → 该通道反射率差 ≈ 0）",
+      "note": "窄带（约 600-650 nm）：红色油墨在该通道的反射率与白色承印物相近，反射率差接近 0 → 不可读"
+    },
+    "ir": {
+      "modelled": false,
+      "channel": null,
+      "source": "data/README.md §8.9 G5（材质/照明组合超出两项判据覆盖）",
+      "note": "红外下油墨的反射率无法由 sRGB 值推导（碳黑吸红外、部分黑墨透红外）；本工具不建模 → surface_effect_unmodeled，不给 pass 也不给 fail"
+    }
+  },
+  "cases": [
+    {
+      "name": "black-on-white-white-light",
+      "bar_color": "#000000",
+      "space_color": "#FFFFFF",
+      "illumination": "white",
+      "expected": [],
+      "source": "data/README.md §8.4 亮度公式实算",
+      "note": "健康样本：亮度比 21.0，白光不跑波长项"
+    },
+    {
+      "name": "red-on-white-red-light",
+      "bar_color": "#C8102E",
+      "space_color": "#FFFFFF",
+      "illumination": "red",
+      "expected": [
+        "wavelength_reflectance_collapse"
+      ],
+      "source": "data/README.md §8.4 P5",
+      "note": "P5 的典型态：红通道反射率 200/255 vs 255/255 → 差 0.216 < delta_min → collapse；亮度项此时是 ok，两项不合并"
+    },
+    {
+      "name": "red-on-white-white-light",
+      "bar_color": "#C8102E",
+      "space_color": "#FFFFFF",
+      "illumination": "white",
+      "expected": [],
+      "source": "data/README.md §8.4（代理实算 contrast_ratio = 5.88）",
+      "note": "最常见的误判点：白光下红条相对亮度 L=0.1285，对比 5.88 >= 4.5 → 亮度项 ok，且不跑波长项"
+    },
+    {
+      "name": "mid-grey-on-white-insufficient",
+      "bar_color": "#999999",
+      "space_color": "#FFFFFF",
+      "illumination": "white",
+      "expected": [
+        "insufficient_contrast"
+      ],
+      "source": "sRGB 相对亮度实算（阈值见 gen_spec.json#engineering_heuristics.contrast_ratio）",
+      "note": "#999999 对白底 2.849 < error_below(3.0) → insufficient_contrast（不再重复报 low_contrast）"
+    },
+    {
+      "name": "dark-grey-on-white-low-contrast",
+      "bar_color": "#808080",
+      "space_color": "#FFFFFF",
+      "illumination": "white",
+      "expected": [
+        "low_contrast"
+      ],
+      "source": "sRGB 相对亮度实算",
+      "note": "#808080 对白底 3.949：落在 [3.0, 4.5) → low_contrast（warn），不是 error"
+    },
+    {
+      "name": "dark-grey-on-white-borderline-ok",
+      "bar_color": "#767676",
+      "space_color": "#FFFFFF",
+      "illumination": "white",
+      "expected": [],
+      "source": "sRGB 相对亮度实算",
+      "note": "#767676 对白底 4.542 >= 4.5 → 边界另一侧，不报（边界两侧逐条测）"
+    },
+    {
+      "name": "metallic-ink-unmodelled",
+      "bar_color": "metallic",
+      "space_color": "#FFFFFF",
+      "illumination": "white",
+      "expected": [
+        "surface_effect_unmodeled"
+      ],
+      "source": "data/README.md §8.9 G5（金属油墨 / 荧光 / 透明承印物 / 镜面反射）",
+      "note": "金属油墨不是 sRGB 三元组，镜面/漫反射行为超出两项判据 → 只给 info"
+    },
+    {
+      "name": "infrared-illumination-unmodelled",
+      "bar_color": "#000000",
+      "space_color": "#FFFFFF",
+      "illumination": "ir",
+      "expected": [
+        "surface_effect_unmodeled"
+      ],
+      "source": "data/README.md §8.9 G5",
+      "note": "红外照明的油墨反射率不可由 sRGB 推导 → 只给 info"
+    },
+    {
+      "name": "orange-on-white-red-light-both-probes",
+      "bar_color": "#C86E00",
+      "space_color": "#FFFFFF",
+      "illumination": "red",
+      "expected": [
+        "low_contrast",
+        "wavelength_reflectance_collapse"
+      ],
+      "source": "sRGB 相对亮度实算 + 红通道差实算",
+      "note": "两项同时触发：亮度 3.69:1 落在 [3.0,4.5) → low_contrast；红通道差 0.216 < delta_min → collapse。判据互不压制，两条并存（顺序按 id 字典序）"
+    }
+  ]
+}

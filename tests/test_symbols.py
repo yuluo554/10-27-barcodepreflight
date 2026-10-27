@@ -333,7 +333,10 @@ def test_pipeline_reports_the_plan_and_drops_the_m2_skip():
     assert report.encoding_plan["symbol"] == "ean13"
     assert report.encoding_plan["tie_break"] == "longest-first"
     assert "module_not_implemented:M2" not in report.skipped
-    assert "module_not_implemented:M3" in report.skipped
+    # M3 已落地：这条 spec 没请求印刷层（无 x_dimension_mm 等），因此既不该
+    # 说"模块没做"，也不该被当成"印刷参数缺失"而判 fail。
+    assert "module_not_implemented:M3" not in report.skipped
+    assert not [s for s in report.skipped if s.startswith("input_incomplete:")]
     assert report.tools["symbol_profiles_version"]
     assert report.tools["symbol_profiles_sha256"]
 

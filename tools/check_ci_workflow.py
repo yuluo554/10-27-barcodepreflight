@@ -35,12 +35,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORKFLOW_DIR = os.path.join(ROOT, ".github", "workflows")
 
 #: 门脚本清单（决策 D18：每条必须是独立 step）。
+#: M3 加 `gen_fixtures.py`：`--check` 判"fixture 清单与判定行为是否还一致"，
+#: 失败模式与其它门相同（该红时必须红），因此同样要求独占一个 step。
+#: 注意 `verify_gates.py` 的基线会调它，所以它必须**先**在 CI 里跑过。
 GATE_SCRIPTS = (
     "check_sprint_layout.py",
     "check_desensitized.py",
     "check_thresholds.py",
     "check_python_floor.py",
     "check_ci_workflow.py",
+    "gen_fixtures.py",
     "verify_gates.py",
 )
 

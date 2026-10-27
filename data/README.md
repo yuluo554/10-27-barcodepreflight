@@ -245,7 +245,9 @@
 | P2 | 零售 POS 可接受放大率区间 | 约 **80% – 200%** | **仅在 BarStripeLab 源码见到**（1★ 项目），属二手 | ⚠️ | 默认区间，须核 GenSpec；`<80%` 或 `>200%` → `warn` |
 | P3 | EAN-13 / UPC-A 条高 | **22.85 mm @ X = 0.330 mm ⇒ 69.24 模块** | 自洽换算（22.85 / 0.330 = 69.24），非独立一手 | ⚠️ | 与 P1 联动的派生值；核 GenSpec 后固化 |
 | P4 | 每模块点数 | `dots_per_module = X_mm / 25.4 × DPI` | **本工具定义的工程判据**（栅格混叠探针），非标准条款 | — | `< 2.0` → `warn`（高风险栅格混叠）；`< 1.5` → `error` |
-| P5 | 条/空颜色可比性 | 红条 + **红光源/红滤镜** → 该通道反射率差 ≈ 0 → 不可读；红条 + **白光无滤镜** 不属此类，走亮度项（`#C8102E` vs 白底 `contrast_ratio = 5.88`，代理实算） | 物理常识 + 条/空反射率对比的定义；分级术语源自 ISO/IEC 15416 ⚠️ 编号未核实；亮度阈值 4.5/3.0 为工程判据 | ⚠️ | 按"亮度对比 + 波长通道"两项判定，**两项不合并**，见 §8.4 |
+| P5 | 条/空颜色可比性 | 红条 + **红光源/红滤镜** → 该通道反射率差 ≈ 0.216 → 不可读；红条 + **白光无滤镜** 不属此类，走亮度项（`#C8102E` vs 白底 `contrast_ratio = 5.88`，代理实算） | 物理常识 + 条/空反射率对比的定义；分级术语源自 ISO/IEC 15416 ⚠️ 编号未核实；亮度阈值 3.0/4.5、通道差阈值 **0.30** 为工程判据 | ⚠️ | 按"亮度对比 + 波长通道"两项判定，**两项不合并**，见 §8.4 |
+| P7 | 条高模块比 | EAN-13/EAN-8/UPC-A 用 `69.24` 模块（= 22.85 / 0.330，P3 的派生值）；其余符号**无阈值、不判** | 自洽换算，非独立一手 | ⚠️ | 每符号一项 `bar_height_modules_min_<symbol>`，未核时降级；缺项即不判（不借别符号的数） |
+| P8 | 贴近带宽度 | `1.2`（`modules_min` 的倍数） | **本工具定义的工程判据**（"贴近下限"的带宽），非标准条款 | — | `gen_spec.json#engineering_heuristics.quiet_zone_marginal_factor`；不参与降级 |
 | P6 | 静区模块数 | **本工具不硬编码**：按符号类别从 `src/bpreflight/data/vectors/quiet_zone.json` 读取，每项带 `source`/`status` | 各符号规范表（本轮**未取得**，iso.org 403 / gs1.org 403） | ⚠️ | 默认值全部标 `status: "unverified"`；`--strict-thresholds` 模式拒用未核值 |
 
 > **P6 是本题最重要的工程约束**：静区模块数是"印刷可读性"最常出问题的项，但本轮**一个都没核实到**。因此 M3 **不写死**静区阈值，而是把它做成**带来源标签的数据**。这样工具在阈值未核时仍然可用（判定结果标 `threshold_status: unverified`），且永远不会把传闻伪装成标准。
@@ -324,40 +326,78 @@ DD ∈ 01..当月天数 → 合法；DD > 当月天数 → invalid_date
 
 ### 8.2 静区（quiet zone）判定
 
-- 输入：`symbol_class`、`side`（`left`/`right`/`top`/`bottom`）、`quiet_zone_mm`、`x_dimension_mm`。
+- 输入：`symbol`、`side`（`left`/`right`/`top`/`bottom`）、`quiet_zone_mm`、`x_dimension_mm`。
 - 计算：`quiet_zone_modules = quiet_zone_mm / x_dimension_mm`（报告里保留 3 位小数定点字符串）。
 - **判定分三档，从"不需要任何标准数字"到"需要已核数字"排列**：
 
-| 档 | `id` | 条件 | 需要 `modules_min` | `severity` |
-|---|---|---|---|---|
-| 结构 | `quiet_zone_absent` | 任一侧 `quiet_zone_mm == 0` | **否** | 恒 `error` |
-| 阈值 | `quiet_zone_insufficient` | `qz_modules < modules_min` | 是 | `verified→error` / `unverified→warn` |
-| 贴近 | `quiet_zone_marginal` | `modules_min <= qz_modules < modules_min × 1.2` | 是 | `warn` |
+| 档 | `id` | 条件 | 需要 `modules_min` | `threshold_status` | `severity` |
+|---|---|---|---|---|---|
+| 结构 | `quiet_zone_absent` | 该侧 `required == true` 且 `quiet_zone_mm == 0` | **否** | `not-applicable`（不比较任何阈值） | 恒 `error` |
+| 阈值 | `quiet_zone_insufficient` | `qz_modules < modules_min` | 是 | 跟随阈值 | `verified→error` / `unverified→warn` |
+| 贴近 | `quiet_zone_marginal` | `modules_min <= qz_modules < modules_min × marginal_factor` | 是 | 跟随阈值 | `warn` |
 
-- 阈值来源：`src/bpreflight/data/vectors/quiet_zone.json[symbol_class][side]`，字段 `{modules_min, source, status, verified_at}`。
-- **结构档是本模块的"零标准"锚点**：`quiet_zone_absent` 不依赖任何未核数字，因此**在任何阈值状态下都是 `error`**，也是 M3 的第一优先验收用例（对应 BinaryEye #616 的"静区不再生成"）。
-- **未核阈值兜底**：若阈值 `status != "verified"`，报告条目必须带 `threshold_status: "unverified"`，且**不得**在 CI 门禁里按 `error` 拦（降为 `warn`）——避免用未核数字卡住别人的流水线。`--strict-thresholds` 时改为 `error` 并在报告首屏标注。
-- **降级的适用边界（重要）**：`status` 只属于**「标准数值，本轮未核实」**这一类（`basis: "gen-spec"`）：静区模块数、放大率区间、名义 X、条高模块比。`basis: "engineering-heuristic"` 的判据（**DPI 每模块点数**、**颜色亮度/波长对比**）**没有 `status` 字段、不参与降级**，其 `severity` 恒定。混淆这两类会让"未核"变成万能挡箭牌。
+- 阈值来源：`src/bpreflight/data/vectors/quiet_zone.json[symbol][side]`，字段
+  `{modules_min, required, source, status, verified_at}`。
+- **`required` 是结构事实，不是标准数值**：1D 符号只要求 `left`/`right`（`top`/`bottom`
+  的 0 是合法的）；2D（`qr` / `datamatrix`）四边都要求。**它必须写在数据里、
+  由装载期断言为 bool**，不许由 `modules_min > 0` 推断——否则"未核阈值"会被悄悄
+  提升成结构事实，而结构档恰恰是唯一不需要任何标准数字的锚点。
+- **结构档是本模块的"零标准"锚点**：`quiet_zone_absent` 不依赖任何未核数字，因此
+  **在任何阈值状态下都是 `error`**，也是 M3 的第一优先验收用例（对应 BinaryEye #616
+  的"静区不再生成"）。`--strict-thresholds` 与未核降级都**不得**触及它；它的
+  `threshold_status` 是 `not-applicable`——报 `unverified` 会让读者以为"等阈值核过
+  这条错就可能消失"，与事实相反。
+- `marginal_factor`（贴近带宽度）是 `basis: engineering-heuristic` 项，在
+  `gen_spec.json#engineering_heuristics.quiet_zone_marginal_factor`，**不参与降级**。
+- **未核阈值兜底**：若阈值 `status != "verified"`，报告条目必须带 `threshold_status: "unverified"`，
+  且**不得**在 CI 门禁里按 `error` 拦（降为 `warn`）——避免用未核数字卡住别人的流水线。
+  `--strict-thresholds` 时改为 `error` 并在报告首屏标注。
+- **降级的适用边界（重要）**：`status` 只属于**「标准数值，本轮未核实」**这一类（`basis: "gen-spec"`）：静区模块数、放大率区间、名义 X、条高模块比。`basis: "engineering-heuristic"` 的判据（**DPI 每模块点数**、**颜色亮度/波长对比**、**贴近带宽度**）**没有 `status` 字段、不参与降级**，其 `severity` 恒定。混淆这两类会让"未核"变成万能挡箭牌。
 
-### 8.3 X-dimension / 放大率 / DPI
+### 8.3 X-dimension / 放大率 / DPI / 条高
 
 - `magnification_pct = x_dimension_mm / nominal_x_mm × 100`（`nominal_x_mm` 来自 `src/bpreflight/data/vectors/gen_spec.json`）。
-- 判定：`magnification_pct < 80` → `warn: magnification_below_range`；`> 200` → `warn: magnification_above_range`；`<= 0` 或字段缺失 → `error: x_dimension_missing`。
-- `dots_per_module = x_dimension_mm / 25.4 × DPI`。
-- 判定：`dots_per_module < 1.5` → `error: raster_alias_high_risk`；`< 2.0` → `warn: raster_alias_risk`；`>= 2.0` → `ok`。
-- **这是本工具定义的工程判据**，不冒称标准条款。报告里必须写 `basis: "engineering-heuristic"`，且**不带 `status` 字段、不参与未核降级**（见 §8.2 末条）。
-- 边界语义：`dots_per_module == 2.0` 判 `ok`（`< 2.0` 才 warn）；`== 1.5` 判 `warn`（`< 1.5` 才 error）。**边界值逐条测**：`1.4999 / 1.5000 / 1.9999 / 2.0000`。
+- 判定：`magnification_pct < magnification_min_pct` → `warn: magnification_below_range`；
+  `> magnification_max_pct` → `warn: magnification_above_range`；
+  `x_dimension_mm <= 0` 或字段缺失 → `error: x_dimension_missing`（`basis: engineering-heuristic`）。
+- `dots_per_module = x_dimension_mm / mm_per_inch × target_dpi`
+  （`mm_per_inch` 是 `gen_spec.json#constants` 里的单位换算常量，不是阈值）。
+- 判定：`dots_per_module < error_below` → `error: raster_alias_high_risk`；
+  `< warn_below` → `warn: raster_alias_risk`；`>= warn_below` → 不产出条目。
+- `bar_height_modules = bar_height_mm / x_dimension_mm`，与
+  `gen_spec.json#values.bar_height_modules_min_<symbol>` 比较；不足 →
+  `error: bar_height_insufficient`（未核时降 `warn`）。**没有该符号阈值的符号不判**
+  （不借别的符号的数字）。
+- **DPI 混叠是本工具定义的工程判据**，不冒称标准条款。报告里必须写
+  `basis: "engineering-heuristic"`，且**不带 `status` 字段、不参与未核降级**（见 §8.2 末条）。
+- 边界语义（**闭区间内侧**）：`dots_per_module == 2.0` 判 ok（`< 2.0` 才 warn）；
+  `== 1.5` 判 warn（`< 1.5` 才 error）；放大率 `== 80%`/`== 200%` 不报。
+  **边界值逐条测**：`1.4999 / 1.5000 / 1.9999 / 2.0000`；
+  `0.2640 / 0.2639 / 0.6600 / 0.6601`（X mm，对应 80% / 200% 两侧）。
 
 ### 8.4 条 / 空颜色可比性
 
-- 输入：`bar_color`、`space_color`、`illumination`（`white` / `red` / `ir` 等）。
+- 输入：`bar_color`、`space_color`、`illumination`（`white` / `red` / `ir`）。
+- **照明建模表在数据里**：`src/bpreflight/data/vectors/color_cases.json#illuminations`，
+  每项 `{modelled, channel, source, note}`。`modelled: false`（当前是 `ir`，以及任何
+  表里没有的名字）**不判**，产 `info: surface_effect_unmodeled`（§8.9 G5）——
+  不给 pass 也不给 fail。
 - 判据两项（都用相对亮度，不用绝对色值）：
-  1. **亮度对比**：`contrast_ratio = (L_light + 0.05) / (L_dark + 0.05)`，`L` 按 sRGB 相对亮度公式由 8-bit 通道算；`< 3.0` → `error: insufficient_contrast`；`< 4.5` → `warn: low_contrast`。
-  2. **波长通道可比性**：在给定照明下若条/空在**该照明主波长通道**的反射率差 `< 20%`（相对值），判 `error: wavelength_reflectance_collapse`。
-     - **红条 + 红光**是典型态（红色在 600–650 nm 附近高反射，与白底同高 → 差≈0 → 不可读）。
-     - **红条 + 白光不算 collapse**：白光是宽谱，红条对白光的相对亮度仍低（`#C8102E` 的 `L = 0.1285`，对白底 `contrast_ratio = 5.88`），此时**走亮度项判定**。把"红光"与"白光"混为一谈是本项最常见的误判，单测必须分开锁。
-     - **不可读 ≠ 低对比**：两项判据的 `id` 不同，报告里**不合并、不互相压制**。
-- **不引入 ICC / 不做真实色彩管理**：只做阈值判定，输出 `risk`，不输出"扫描仪读到什么"。
+  1. **亮度对比**：`contrast_ratio = (L_light + 0.05) / (L_dark + 0.05)`，`L` 按 sRGB
+     相对亮度公式由 8-bit 通道算；`< 3.0` → `error: insufficient_contrast`；
+     `< 4.5` → `warn: low_contrast`。两项**互斥**（error 档不再叠一条 warn）。
+  2. **波长通道可比性**：照明建模到某个窄带通道时（`red` → `red` 通道），若条/空在
+     **该通道**的相对反射率差 `< 0.30`，判 `error: wavelength_reflectance_collapse`。
+     - **红条 + 红光**是典型态（`#C8102E` 的红通道 200/255 vs 白底 255/255 → 差
+       `0.216` → 塌陷）。
+     - **红条 + 白光不算 collapse**：白光是宽谱，它的 `channel` 是 `luminance`，
+       **不跑**波长项；红条对白光的相对亮度仍低（`#C8102E` 的 `L = 0.1285`，对白底
+       `contrast_ratio = 5.88`），此时**只走亮度项**。把"红光"与"白光"混为一谈是本项
+       最常见的误判，单测必须分开锁。
+     - **不可读 ≠ 低对比**：两项判据的 `id` 不同，报告里**不合并、不互相压制**
+       （`#C86E00` + 红光会同时触发两条，测试逐条断言）。
+- **"相对反射率"的定义**：单通道 8-bit 值 / 255，不做色彩管理、不引入 ICC
+  （弃选项）。只做阈值判定，输出风险，不输出"扫描仪读到什么"。
 - 分级术语若引用 ISO/IEC 15416 → ⚠️ 编号未核实，且**本工具不做 15416 分级本身**（见 §8.6）。
 
 ### 8.5 严重级别与退出码
@@ -418,8 +458,13 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 - **`encoding_plan`（M2）**：只在数据**可编码进目标符号**时出现：
   `{symbol, mode, segments[], total_modules, checksum, tie_break, profile_version}`。
   不可编码时**不输出半个计划**，原因在 `findings` 里（见 §8.10）。
-- **`tools` 身份**：`dict_version` / `dict_sha256`（M1 字典）与
-  `symbol_profiles_version` / `symbol_profiles_sha256`（M2 规则表）都可独立复算。
+- **`tools` 身份**：`dict_version` / `dict_sha256`（M1 字典）、
+  `symbol_profiles_version` / `symbol_profiles_sha256`（M2 规则表）与
+  `vectors_sha256`（M3 阈值册：`quiet_zone.json` + `gen_spec.json` + `color_cases.json`
+  三份的**合并摘要**，装载时按固定序复算）都可独立复算。
+- **M3 的 findings 走同一个 `findings` 数组**，不另开 `scanability` 段——`verdict` 由全量
+  findings 的最严重级别派生（§8.8），把 M3 单独装一段会让"条码整体能不能扫"有两个答案
+  （`plan/01` 的 `scanability` 是这一段的口径名，不是第二个字段）。
 - `fingerprint = sha256(f"{id}\x1f{module}\x1f{canonical_target}").hexdigest()[:16]`，**不含**时间戳/路径/机器名，用于跨 run diff。
 - 报告**默认无时间戳**（确定性优先）；`--with-timestamp` 时显式标注"非确定性导出"。
 - 报告**不含**任何网络请求结果、不含用户主目录绝对路径（写相对路径或脱敏路径）。
@@ -499,9 +544,9 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | # | 项 | 状态 | 原因 |
 |---|---|---|---|
 | 1 | 全部 ISO/IEC 编号（15417 / 15420 / 16388 / 16022 / 18004 / 15418 / 15416） | ⚠️ | iso.org 403，未能直连任何条款 |
-| 2 | 各符号的静区模块数（EAN/UPC、Code 128、Data Matrix、QR 等） | ⚠️ | gs1.org 403；仅二手 |
+| 2 | 各符号的静区模块数（EAN/UPC、Code 128、Data Matrix、QR 等） | ⚠️ **M3 已落库但全部 `unverified`** | gs1.org 403；仅二手。判定已接：未核项降级为 `warn`，`--strict-thresholds` 恢复 `error`；结构档（零静区）不依赖这些数字 |
 | 3 | 零售 POS 放大率区间 80%–200% | ⚠️ | 仅 BarStripeLab 源码（1★）见到 |
-| 4 | 名义 X = 0.330 mm、条高 22.85 mm | ⚠️ | 二手；须核 GenSpec 原表 |
+| 4 | 名义 X = 0.330 mm、条高 22.85 mm、放大率区间、贴近带 1.2 | ⚠️ **M3 已接判定** | 二手；须核 GenSpec 原表。放大率与条高已外置并降级；贴近带是工程判据（不降级） |
 | 5 | `yymmd0` 在 11/13/15/17 四类日期上的逐条适用性 | ✅ **M1 已核对** | 以字典原文行逐条确认（实为 8 条：11/12/13/15/16/17/4324/4325，见 §3）；同族 `yymmdd` 6 条、`yyyymmdd` 2 条另计 |
 | 6 | 各符号的容量/模式切换表 | ⚠️ **M2 已落库但全部 `unverified`** | 规范原文仍 403；`symbol_profiles.json` 每条规则带 `source`/`status`/`verified_at`，未核规则派生的判定降级为 `warn`（§8.10）；官方编码器交叉验证未做 |
 | 7 | zxing-cpp 本机可用性 | ⬜ | 本机未验证；M5 缺失时标 `skipped: oracle_absent` |

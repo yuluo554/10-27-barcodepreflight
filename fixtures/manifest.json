@@ -1,0 +1,450 @@
+{
+  "fixtures": {
+    "bar-height-ok": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/bar-height-ok.json",
+      "sha256": "92858157f7c2a82b9fbc40ac06d7d8ccc495a49d738cd162d8aa4cc08437fa8e",
+      "suite": "bar_height"
+    },
+    "bar-height-short": {
+      "bytes": 336,
+      "expect": {
+        "findings": [
+          "bar_height_insufficient",
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/bar-height-short.json",
+      "sha256": "d6a5faa4fb8043cb7c96f336ea4432f20c790ea3c6295835b07613dc28990ceb",
+      "suite": "bar_height"
+    },
+    "color-grey-insufficient": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "insufficient_contrast",
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/color-grey-insufficient.json",
+      "sha256": "254955317c6121b3c7ca090da220ec2a7b2ac716024f9a808078b4cf37c35730",
+      "suite": "color"
+    },
+    "color-grey-low": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "low_contrast",
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/color-grey-low.json",
+      "sha256": "843127539758c4b1e4307fbc323c15300bb0b3fba3676072e5451a0b98e13d01",
+      "suite": "color"
+    },
+    "color-infrared-unmodelled": {
+      "bytes": 334,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal",
+          "surface_effect_unmodeled"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/color-infrared-unmodelled.json",
+      "sha256": "061044b573008e1db8c042ec95a12e70a7b0dfd5231aa479571c4778c8c4dda7",
+      "suite": "color"
+    },
+    "color-metallic-unmodelled": {
+      "bytes": 338,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal",
+          "surface_effect_unmodeled"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/color-metallic-unmodelled.json",
+      "sha256": "e575faaed02a87d60a26de9aa5300b832fa1f5dd0b07ef70a087dd04591ba7ec",
+      "suite": "color"
+    },
+    "color-orange-both-probes": {
+      "bytes": 335,
+      "expect": {
+        "findings": [
+          "low_contrast",
+          "quiet_zone_marginal",
+          "quiet_zone_marginal",
+          "wavelength_reflectance_collapse"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/color-orange-both-probes.json",
+      "sha256": "a36978005062412234ffc575702c1352f820d89e54d414df74b47afe8e14b5a3",
+      "suite": "color"
+    },
+    "color-red-on-white-red-light": {
+      "bytes": 335,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal",
+          "wavelength_reflectance_collapse"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/color-red-on-white-red-light.json",
+      "sha256": "c24430826eb2e6176453788c063318d3c1344f08f09f90ff3ffb43b1697fb43e",
+      "suite": "color"
+    },
+    "color-red-on-white-white-light": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/color-red-on-white-white-light.json",
+      "sha256": "28564a8427de1440042e08b567b3292d76b99ba543e20dc2fe052156ffc4dc23",
+      "suite": "color"
+    },
+    "colour-only": {
+      "bytes": 115,
+      "expect": {
+        "findings": [
+          "input_incomplete",
+          "wavelength_reflectance_collapse"
+        ],
+        "skipped": [
+          "input_incomplete:symbol,x_dimension_mm,target_dpi,quiet_zone_mm"
+        ],
+        "verdict": "fail"
+      },
+      "path": "fixtures/colour-only.json",
+      "sha256": "ebf7ebc99f060dc035cd354e0eca0397b7da639f221213baf2502343ab14be3d",
+      "suite": "refusal"
+    },
+    "m1-bad-check-digit": {
+      "bytes": 69,
+      "expect": {
+        "findings": [
+          "invalid_csum"
+        ],
+        "skipped": [
+          "symbol_not_specified"
+        ],
+        "verdict": "fail"
+      },
+      "path": "fixtures/m1-bad-check-digit.json",
+      "sha256": "4fc02a2e7d2a377b82bd3f51645cb5b1c747f69bb3a8324d45f945620a8fc45f",
+      "suite": "data_layer"
+    },
+    "m1-clean-gtin": {
+      "bytes": 82,
+      "expect": {
+        "findings": [],
+        "skipped": [
+          "gcp_lookup_unavailable",
+          "reference_engine_absent",
+          "symbol_not_specified"
+        ],
+        "verdict": "pass"
+      },
+      "path": "fixtures/m1-clean-gtin.json",
+      "sha256": "6f7ddfcce575e4b790fd2f9a6d5dee830db83bfaec2bed57651c3ff2f312bb63",
+      "suite": "data_layer"
+    },
+    "m2-upca-length": {
+      "bytes": 89,
+      "expect": {
+        "findings": [
+          "symbol_length_mismatch"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/m2-upca-length.json",
+      "sha256": "4efb111b93587a37d2a152ed05db3ffef3f67718d4e91b45eea646fdafbb9294",
+      "suite": "data_layer"
+    },
+    "mag-0-2639-ean13": {
+      "bytes": 258,
+      "expect": {
+        "findings": [
+          "magnification_below_range"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/mag-0-2639-ean13.json",
+      "sha256": "04c4a25c42b54be1286488bf8c66026825d1edcb2fac0d48bccf191f60d509c2",
+      "suite": "magnification"
+    },
+    "mag-0-2640-ean13": {
+      "bytes": 258,
+      "expect": {
+        "findings": [],
+        "skipped": [],
+        "verdict": "pass"
+      },
+      "path": "fixtures/mag-0-2640-ean13.json",
+      "sha256": "24571edb93e2a71d8af01d03b3e83725c02cc994b2542159d4e8322b9f366d35",
+      "suite": "magnification"
+    },
+    "mag-0-6600-ean13": {
+      "bytes": 258,
+      "expect": {
+        "findings": [
+          "quiet_zone_insufficient",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/mag-0-6600-ean13.json",
+      "sha256": "9ab8a042d561c3623e32fe5f7ab20eed2b1a47a2dbcdacdd66e14576fe7da26a",
+      "suite": "magnification"
+    },
+    "mag-0-6601-ean13": {
+      "bytes": 258,
+      "expect": {
+        "findings": [
+          "magnification_above_range",
+          "quiet_zone_insufficient",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/mag-0-6601-ean13.json",
+      "sha256": "5de6a75147917b03693fd102c4c33b0ce6e0edb894fdd1f0a52c018e1003bae6",
+      "suite": "magnification"
+    },
+    "missing-x-dimension": {
+      "bytes": 102,
+      "expect": {
+        "findings": [
+          "input_incomplete"
+        ],
+        "skipped": [
+          "input_incomplete:x_dimension_mm"
+        ],
+        "verdict": "fail"
+      },
+      "path": "fixtures/missing-x-dimension.json",
+      "sha256": "226e192b1ae9ec111c92ac620c39ebea4f01ab5ecd62178a4d96a41dc7d39de9",
+      "suite": "refusal"
+    },
+    "qz-2d-all-sides": {
+      "bytes": 339,
+      "expect": {
+        "findings": [
+          "quiet_zone_absent",
+          "quiet_zone_absent"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/qz-2d-all-sides.json",
+      "sha256": "9b904aed933387136817f65ba94f841ea83397637628df3c1c525fb09efd4f02",
+      "suite": "quiet_zone"
+    },
+    "qz-absent-binaryeye-616": {
+      "bytes": 260,
+      "expect": {
+        "findings": [
+          "quiet_zone_absent",
+          "quiet_zone_absent"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/qz-absent-binaryeye-616.json",
+      "sha256": "b341f1ef12e340238d27b6e17d0f2c9bfc39251f41554ac8d22333cee6c1e3ee",
+      "suite": "quiet_zone"
+    },
+    "qz-healthy": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/qz-healthy.json",
+      "sha256": "92858157f7c2a82b9fbc40ac06d7d8ccc495a49d738cd162d8aa4cc08437fa8e",
+      "suite": "quiet_zone"
+    },
+    "qz-insufficient-python-barcode-41": {
+      "bytes": 262,
+      "expect": {
+        "findings": [
+          "quiet_zone_insufficient",
+          "quiet_zone_insufficient"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/qz-insufficient-python-barcode-41.json",
+      "sha256": "144c13d482c0f33bfb63ed121ccc21205207973bb610d69c6aac643d9c625ffb",
+      "suite": "quiet_zone"
+    },
+    "qz-marginal": {
+      "bytes": 263,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/qz-marginal.json",
+      "sha256": "f0b0b4e451133a847b8c929438e33417543e697dba5853ca989421b9804f91b2",
+      "suite": "quiet_zone"
+    },
+    "raster-1-4999": {
+      "bytes": 263,
+      "expect": {
+        "findings": [
+          "magnification_above_range",
+          "raster_alias_high_risk"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/raster-1-4999.json",
+      "sha256": "9f810f83a36e45bd86062de87eb3cdf5c46505d5ad48b49de5c07a83bcd0535c",
+      "suite": "raster"
+    },
+    "raster-1-5000": {
+      "bytes": 263,
+      "expect": {
+        "findings": [
+          "magnification_above_range",
+          "raster_alias_risk"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/raster-1-5000.json",
+      "sha256": "ee211bd20605cfcfa1b9d982d8ebb70e25a63bcf487276decd215a231e4a0cbb",
+      "suite": "raster"
+    },
+    "raster-1-9999": {
+      "bytes": 263,
+      "expect": {
+        "findings": [
+          "magnification_above_range",
+          "raster_alias_risk"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/raster-1-9999.json",
+      "sha256": "740b328656f89d8632537a9398afe7376b9fea142d006988dc75af1fd5df2c73",
+      "suite": "raster"
+    },
+    "raster-2-0000": {
+      "bytes": 263,
+      "expect": {
+        "findings": [
+          "magnification_above_range"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/raster-2-0000.json",
+      "sha256": "ad2da50d509a917e4bd730a3440d86711140ae1082a27652574127b78cc826a5",
+      "suite": "raster"
+    },
+    "raster-dpi-100": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal",
+          "raster_alias_high_risk"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/raster-dpi-100.json",
+      "sha256": "9599b29422c4b2bf26e552e74e8308c8d119fba81a416e16c863b4a2c9a1a221",
+      "suite": "raster"
+    },
+    "raster-dpi-120": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal",
+          "raster_alias_risk"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/raster-dpi-120.json",
+      "sha256": "89fb097256178aef1dc8c02c84191127761e5f2f2d70f228fa3bebceb1cba654",
+      "suite": "raster"
+    },
+    "raster-dpi-203": {
+      "bytes": 337,
+      "expect": {
+        "findings": [
+          "quiet_zone_marginal",
+          "quiet_zone_marginal"
+        ],
+        "skipped": [],
+        "verdict": "warn"
+      },
+      "path": "fixtures/raster-dpi-203.json",
+      "sha256": "92858157f7c2a82b9fbc40ac06d7d8ccc495a49d738cd162d8aa4cc08437fa8e",
+      "suite": "raster"
+    },
+    "zero-x-dimension": {
+      "bytes": 333,
+      "expect": {
+        "findings": [
+          "x_dimension_missing"
+        ],
+        "skipped": [],
+        "verdict": "fail"
+      },
+      "path": "fixtures/zero-x-dimension.json",
+      "sha256": "27de5dada66245b32ddddbb648190b42475baf8943745e3cd27c2316d17aee82",
+      "suite": "refusal"
+    }
+  },
+  "generator": "tools/gen_fixtures.py",
+  "note": "产物 fixtures/*.json 不入仓（.gitignore）；本清单入仓。`sha256` 是产物字节的摘要，`expect` 是每次运行重算的期望——`gen_fixtures.py --check` 用它做位级 + 结论双向比对。",
+  "schema": "bpreflight/fixtures/1",
+  "thresholds_sha256": "17ead62a8f083262f9e151294e9a96cb9cafefbd9748f2f3c64af92600c14fde"
+}

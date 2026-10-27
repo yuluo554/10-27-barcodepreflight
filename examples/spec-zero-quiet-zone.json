@@ -1,0 +1,17 @@
+{
+  "schema": "bpreflight/spec/1",
+  "mode": "params",
+  "symbol": "code128",
+  "x_dimension_mm": "0.330",
+  "target_dpi": 300,
+  "quiet_zone_mm": {
+    "left": "0",
+    "right": "0",
+    "top": "0",
+    "bottom": "0"
+  },
+  "bar_color": "#000000",
+  "space_color": "#FFFFFF",
+  "illumination": "white",
+  "identifier": "4006381333931"
+}

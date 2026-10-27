@@ -3,7 +3,7 @@
   "mode": "params",
   "symbol": "ean13",
   "x_dimension_mm": "0.330",
-  "target_dpi": 300,
+  "target_dpi": 203,
   "quiet_zone_mm": {
     "left": "3.63",
     "right": "2.31",
@@ -13,7 +13,6 @@
   "bar_height_mm": "22.85",
   "bar_color": "#000000",
   "space_color": "#FFFFFF",
-  "illumination": "red",
-  "magnification_pct": "100",
+  "illumination": "white",
   "gs1_element_string": "(01)04006381333931"
 }

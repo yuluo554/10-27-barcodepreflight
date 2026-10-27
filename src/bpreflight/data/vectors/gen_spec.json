@@ -36,6 +36,20 @@
       "status": "unverified",
       "verified_at": null,
       "basis": "gen-spec"
+    },
+    "bar_height_modules_min_ean8": {
+      "value": "69.24",
+      "source": "derived: same 22.85 mm placeholder applied to the retail family (EAN-13 / EAN-8 / UPC-A); not independently sourced",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
+    },
+    "bar_height_modules_min_upca": {
+      "value": "69.24",
+      "source": "derived: same 22.85 mm placeholder applied to the retail family (EAN-13 / EAN-8 / UPC-A); not independently sourced",
+      "status": "unverified",
+      "verified_at": null,
+      "basis": "gen-spec"
     }
   },
   "engineering_heuristics": {
@@ -51,8 +65,18 @@
       "basis": "engineering-heuristic"
     },
     "wavelength_reflectance_delta_min": {
-      "value": "0.20",
-      "basis": "engineering-heuristic"
+      "value": "0.30",
+      "basis": "engineering-heuristic",
+      "note": "calibrated against data/README.md §8.4 (#C8102E under red gives 0.216); the earlier 0.20 placeholder was too tight to capture that documented case"
+    },
+    "quiet_zone_marginal_factor": {
+      "value": "1.2",
+      "basis": "engineering-heuristic",
+      "note": "width of the 'close to the minimum' band in data/README.md §8.2 (marginal = modules_min .. modules_min x factor)"
     }
+  },
+  "constants": {
+    "note": "单位换算等结构常量，不是阈值；改口径时不会跟着变（tools/check_thresholds.py 的同一判别标准）。",
+    "mm_per_inch": "25.4"
   }
 }

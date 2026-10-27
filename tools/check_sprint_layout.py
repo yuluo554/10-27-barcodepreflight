@@ -119,9 +119,8 @@ STATUS_TOKENS = DONE_MARKERS + PENDING_MARKERS
 RELEASE_MILESTONE = 6
 
 #: 文档已点名、但**尚未到**该里程碑的脚本。里程碑翻 ✅ 后必须删除，否则 stale 分支变红。
-PENDING_TOOLS = {
-    "tools/gen_fixtures.py": 3,
-}
+#: M3 落地后 `tools/gen_fixtures.py` 已在位，本表清空——空表是正确终态（假门族 ⑬）。
+PENDING_TOOLS = {}
 #: 确实不打算实现的脚本（逐条写理由）。当前为空表 —— 空表本身是正确终态（假门族 ⑬）。
 EXEMPT_TOOLS = {}
 

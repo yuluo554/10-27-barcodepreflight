@@ -33,10 +33,30 @@ ILLUMINATIONS = ("white", "red", "ir")
 DATA_FIELDS = ("gs1_element_string", "identifier")
 
 #: M3（印刷层）判定所需的输入面。缺任一即 `input_incomplete`（§8.9 G3），
-#: **不静默补默认值**。
+#: **不静默补默认值**。`bar_height_mm` / 颜色三件不在其中：条高是可选判据，
+#: 颜色只要求三件同时在场（`PRINT_COLOR_FIELDS`），缺一件就整项不判。
 PRINT_FIELDS = ("symbol", "x_dimension_mm", "target_dpi", "quiet_zone_mm")
 
+#: 颜色判据所需的三件：两个颜色 + 照明。三者同时在场才判（§8.4）。
+PRINT_COLOR_FIELDS = ("bar_color", "space_color", "illumination")
+
+#: "用户确实请求了印刷层"的判据。**不含 `symbol`**：它与 M2 共用，只给
+#: `symbol` + 数据层字段的 spec 是在请求"符号可行性"，不是在请求"印刷审计"
+#: ——把它当成缺参会让数据层/符号层的干净输入被判 fail。
+PRINT_INPUT_FIELDS = (
+    "x_dimension_mm",
+    "target_dpi",
+    "quiet_zone_mm",
+    "bar_height_mm",
+    "magnification_pct",
+) + PRINT_COLOR_FIELDS
+
 _STRING_FIELDS = ("gs1_element_string", "identifier")
+
+#: `quiet_zone_mm` 的四个侧（与 `print/quiet_zone.SIDES` 同集合；这里只用于输入校验）。
+QUIET_ZONE_SIDES = ("left", "right", "top", "bottom")
+
+_NUMERIC_FIELDS = ("x_dimension_mm", "bar_height_mm", "magnification_pct")
 
 
 class InputError(Exception):
@@ -116,12 +136,75 @@ def load_spec(path):
         if value == "":
             raise InputError("{!r} is empty; omit the field or supply a value".format(field))
 
+    # 印刷参数只在**给出了值**时校验形状：缺参是 `input_incomplete`（判定层的事，
+    # 带一条可执行 fix），不是这里 exit 3。形状错了才是用法错误——静默转成 0 会让
+    # 判定层拿一个用户没写过的数去判。
+    for field in _NUMERIC_FIELDS:
+        value = payload.get(field)
+        if value is None:
+            continue
+        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+            raise InputError(
+                "{!r} must be a number or a fixed-point string (got {})".format(
+                    field, type(value).__name__
+                )
+            )
+
+    dpi = payload.get("target_dpi")
+    if dpi is not None and (isinstance(dpi, bool) or not isinstance(dpi, (str, int, float))):
+        raise InputError(
+            "'target_dpi' must be a number or a fixed-point string (got {})".format(
+                type(dpi).__name__
+            )
+        )
+
+    _validate_quiet_zone_shape(payload.get("quiet_zone_mm"))
+
+    for field in ("bar_color", "space_color"):
+        value = payload.get(field)
+        if value is not None and not isinstance(value, str):
+            raise InputError(
+                "{!r} must be a string (got {})".format(field, type(value).__name__)
+            )
+
     input_info = {
         "file": os.path.basename(path),
         "sha256": hashlib.sha256(raw).hexdigest(),
         "mode": payload.get("mode", "params"),
     }
     return payload, input_info
+
+
+def _validate_quiet_zone_shape(raw):
+    """`quiet_zone_mm` 可以是标量（四侧同值）或只含四个侧名的对象。
+
+    形状不对是**用法错误**（exit 3）：一个多出来的侧名或一个非数值，说明 spec 的
+    意思与工具理解的不一致——这时产判定等于替用户猜（§8.9 G3 的同一理由）。
+    """
+    if raw is None or isinstance(raw, bool):
+        return
+    if isinstance(raw, (int, float, str)):
+        return
+    if not isinstance(raw, dict):
+        raise InputError(
+            "'quiet_zone_mm' must be a number or an object with left/right/top/bottom "
+            "(got {})".format(type(raw).__name__)
+        )
+    unknown = sorted(set(raw) - set(QUIET_ZONE_SIDES))
+    if unknown:
+        raise InputError(
+            "'quiet_zone_mm' has unknown side(s) {}; supported: {}".format(
+                ", ".join(unknown), ", ".join(QUIET_ZONE_SIDES)
+            )
+        )
+    for side in sorted(raw):
+        value = raw[side]
+        if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+            raise InputError(
+                "'quiet_zone_mm.{}' must be a number or a fixed-point string (got {})".format(
+                    side, type(value).__name__
+                )
+            )
 
 
 def missing_fields(payload):

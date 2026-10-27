@@ -7,19 +7,20 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：M2（符号合法性）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
-四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）与 **M2 符号层**（八符号 profile 数据表 +
-字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）。**M3（印刷可读性）未实现**，
-报告会在首屏 `SKIPPED:` 一栏里自己说（`module_not_implemented:M3`）——不会让人把
-只做了数据层与符号层的结论读成"整个条码没问题"。符号规则本轮**全部 `unverified`**
-（未取到规范原文），由它们派生的判定默认降级为 `warn`，`--strict-thresholds` 恢复 `error`。
+**状态：M3（印刷可读性）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
+四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）、**M2 符号层**（八符号 profile 数据表 +
+字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）与 **M3 印刷层**（静区 / 放大率 /
+DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）。**M4（报告与门禁）未开工**；
+报告会在首屏 `SKIPPED:` 一栏里如实登记不可判的项。符号规则与印刷阈值本轮**全部
+`unverified`**（未取到规范原文 / GenSpec 原表），由它们派生的判定默认降级为 `warn`，
+`--strict-thresholds` 恢复 `error`；**DPI 混叠与颜色两项是工程判据，不参与降级**。
 
 | 里程碑 | 状态 | 说明 |
 | --- | --- | --- |
 | M0 | ✅ | 计划套件 + 五道门 + 可运行骨架（本地等价校验，未接远端） |
 | M1 | ✅ | 数据层：内嵌官方字典 + 校验位 + 语义解释器（本地等价校验，未接远端）；另补第六道门 `check_ci_workflow.py`（CI 工作流 YAML 可解析性） |
 | M2 | ✅ | 符号层：八符号 profile（全部 `unverified`）+ 三段判定 + `encoding_plan`（本地等价校验，未接远端） |
-| M3 | ⬜ | 印刷可读性（差异化核心） |
+| M3 | ✅ | 印刷层：五项检查 + 边界值逐条 + `fix` 必填 + 未核降级 + `gen_fixtures.py`（本地等价校验，未接远端） |
 | M4 | ⬜ | 报告与 CI 门禁 |
 | M5 | ⬜ | 栅格化仿真回读（可选） |
 | M6 | ⬜ | 发布 |
@@ -92,9 +93,8 @@ TOP FIX: recompute_check_digit -> 09501101530003 digits
 | 长度 / 字符集 | 按字典的组件规格（`N14` / `X..20` / `[X..16]`）逐段核对 |
 
 **它不假装会判的东西**（都进首屏 `SKIPPED:`）：`gcppos1/2`（要 GCP 分配库 = GEPIR 联网授权，
-属非目标）、字典点名但本棒未实现的 linter、M3 印刷层（`module_not_implemented:M3`），
-以及符号层自己的三条（`symbol_not_specified` / `symbol_data_unparsed` /
-`gs1_2d_fnc1_not_modelled`）。
+属非目标）、字典点名但未实现的 linter，以及符号层的三条
+（`symbol_not_specified` / `symbol_data_unparsed` / `gs1_2d_fnc1_not_modelled`）。
 
 ### 符号层判什么（M2）
 
@@ -118,6 +118,26 @@ TOP FIX: recompute_check_digit -> 09501101530003 digits
 `source` / `status` / `verified_at`。本轮没有取到任何符号规范原文 ⇒ **全部 `unverified`**，
 判定降级为 `warn`；`--strict-thresholds` 恢复 `error`。校验位仍只有一份实现
 （`gs1/checksum.py`），M2 只调用不复制。
+
+### 印刷层判什么（M3）
+
+| 判据 | 说明 |
+| --- | --- |
+| 静区 | `qz_modules = quiet_zone_mm / x_dimension_mm`，**三档**：零静区（`required` 侧）恒 `error`、低于 `modules_min` 随 `status`、贴近下限 `warn` |
+| 放大率 | `x_dimension_mm / nominal_x_mm`；`< 80%` / `> 200%` → `warn`（边界值不报） |
+| DPI 混叠 | `dots_per_module = X_mm / 25.4 × DPI`；`< 1.5` → `error`、`< 2.0` → `warn`（**工程判据，不降级**） |
+| 条高 | `bar_height_mm / x_dimension_mm` vs 该符号的模块比阈值；**没有阈值的符号不判** |
+| 颜色 | 亮度对比（`insufficient_contrast` / `low_contrast`）+ 波长通道塌陷（`wavelength_reflectance_collapse`）；**两项不合并** |
+
+三条纪律：
+
+- **零静区是结构事实**：该侧要求静区却给了 0，就恒为 `error`，不看任何未核数字，
+  `--strict-thresholds` 与降级都碰不到它（BinaryEye #616 类场景）。
+- **缺参即拒判**：缺 `x_dimension_mm` / `target_dpi` / `quiet_zone_mm` 只产一条
+  `input_incomplete`（点名缺哪个），**不产**任何 `quiet_zone_*` / `magnification_*` /
+  `raster_*` 结论——不拿默认值替用户编数据。
+- **红条 + 白光 ≠ 红条 + 红光**：白光是宽谱只跑亮度项（`#C8102E` 对白底 5.88:1，`ok`），
+  红光才跑波长项（红通道差 0.216 → 塌陷）。把两者合成一条判据是最常见的误判。
 
 ### 退出码
 

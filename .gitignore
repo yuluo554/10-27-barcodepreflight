@@ -74,6 +74,11 @@ out/
 reports/
 runs/
 
+# M3 fixture 产物：内容由 tools/gen_fixtures.py 重算，不入仓；
+# 入仓的是生成器 + 清单（fixtures/manifest.json）。
+fixtures/*.json
+!fixtures/manifest.json
+
 # 生成图片一律不入仓：M5 栅格化仿真产物、fixture 渲染图、临时截图
 *.png
 *.jpg

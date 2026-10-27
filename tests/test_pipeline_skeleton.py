@@ -93,15 +93,17 @@ def test_input_incomplete_finding_has_actionable_fix():
 
 
 def test_unimplemented_modules_are_announced_not_silent():
-    """M3 未落地：报告必须把这件事标出来（`skipped`）。
+    """M1–M3 已落地：`module_not_implemented:<k>` 必须全部消失。
 
-    M2 已落地，所以 `module_not_implemented:M2` 必须消失——否则"模块已实现"这条
-    事实在报告里是反的。M2 的"不判"由更具体的 skipped 值表达
-    （`symbol_not_specified` / `symbol_data_unparsed`）。
+    这条判据保住了"模块未实现必须自报"的通道：`pipeline._module_skips` 仍是
+    登记点，新模块（M5 的 oracle）未落地前必须走它，而不是让报告沉默地变绿。
+    现在三条都已实现，所以断言的是**没有**任何一条冒出来。
     """
     report = pipeline.run(_payload(), {"file": "spec.json"})
-    assert "module_not_implemented:M2" not in report.skipped
-    assert "module_not_implemented:M3" in report.skipped
+    for module in ("M1", "M2", "M3"):
+        assert "module_not_implemented:" + module not in report.skipped
+    assert not [s for s in report.skipped if s.startswith("module_not_implemented:")]
+    assert pipeline.IMPLEMENTED_MODULES == ("M1", "M2", "M3")
 
 
 def test_reference_engine_absence_is_declared():
@@ -137,12 +139,30 @@ def test_strict_thresholds_warning_is_explicit():
 
 
 def test_missing_m3_params_are_skipped_not_defaulted():
-    """§8.9 G3：缺参数不静默补默认值，登记为 skipped。"""
-    payload = {"schema": "bpreflight/spec/1", "symbol": "ean13"}
+    """§8.9 G3：缺参数不静默补默认值。
+
+    M3 落地后这条由**判定层**承担：缺字段 → 一条 `input_incomplete`（error，点名
+    缺哪个）+ 首屏 `skipped` 回声；**不产生**任何 `quiet_zone_*` / `magnification_*` /
+    `raster_*` 结论（否则就是拿用户没写过的数去判）。
+    """
+    payload = {
+        "schema": "bpreflight/spec/1",
+        "symbol": "ean13",
+        "target_dpi": 300,
+        "quiet_zone_mm": "5",
+    }
     report = pipeline.run(payload, {"file": "spec.json"})
     assert any(s.startswith("input_incomplete:") for s in report.skipped)
     joined = ",".join(report.skipped)
-    assert "x_dimension_mm" in joined and "quiet_zone_mm" in joined
+    assert "x_dimension_mm" in joined
+
+    ids = [f.id for f in report.findings]
+    assert ids.count("input_incomplete") == 1, ids
+    for prefix in ("quiet_zone_", "magnification_", "raster_", "bar_height_"):
+        assert not [i for i in ids if i.startswith(prefix)], (prefix, ids)
+    finding = [f for f in report.findings if f.id == "input_incomplete"][0]
+    assert finding.severity == "error"
+    assert "x_dimension_mm" in finding.observed
 
 
 def test_report_is_deterministic_across_two_runs():
