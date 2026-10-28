@@ -219,7 +219,7 @@
 > `fixtures/manifest.json`）→ 交付面定稿后构建 `sdist` + `wheel` + `SHA256SUMS`
 > （`twine check` 两件 PASSED）→ annotated tag `v0.1.0` + GitHub Release →
 > `plan/RELEASE-M6.md` 两栏 + 阶段 7 覆盖对账。三条设计取舍记在这里：
-> ① **"本体可证伪"优先于"门全绿"**——本轮三处实修都属这一族：
+> ① **"本体可证伪"优先于"门全绿"**——本轮四处实修都属这一族：
 > **（a）`MANIFEST.in` 补三条白名单**（`examples/` / `fixtures/manifest.json` / `.github/`）：
 > 缺它们时 README 的"用法"首条命令、`gen_fixtures.py --check`、`check_ci_workflow.py`
 > 在解包树里全红、`pytest` 12 failed，而仓库树里六道门一片绿——**"门绿"证的是工作树，
@@ -231,6 +231,9 @@
 > M6 翻 ✅ 后 L4 / L9 两组变异静默变绿，根因是把 `plan/05` §四"已知未验证项"里
 > **表尾引用 `M6` + 状态格 `⬜`** 当成状态行（"行里含 M6"）——改成**首格必须是 `M<k>`**
 > （与布局门 `STATUS_LINE` 同口径），并给三条变异补"全部 ✅ 之后"的第二态；
+> **（d）一条判据改两态**：`test_manifest_is_committed_and_fixtures_are_not` 读 `.gitignore`
+> 才能断言"产物不入仓"，而 sdist 不带 `.gitignore`——解包树里**显式 SKIP 并写明理由**，
+> 不删测试、不写成 PASS。
 > **没有删测试、没有放宽断言**；
 > ② **tag 树内不写派生量**——tag 对象 OID / commit / 产物 `sha256` / CI run id 只进
 > `plan/RELEASE-M6.md` §二（tag 之后的追加提交），§一 只写方法与已发生的历史，

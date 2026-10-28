@@ -63,9 +63,18 @@ def recorder(monkeypatch):
 
 
 def test_manifest_is_committed_and_fixtures_are_not():
-    """入仓的是清单；产物不入仓（`.gitignore` 里逐条放过 manifest）。"""
+    """入仓的是清单；产物不入仓（`.gitignore` 里逐条放过 manifest）。
+
+    **两态判据**：发布包（sdist）不带 `.gitignore`（它是 git 面文件，不在 `MANIFEST.in`
+    白名单里）。解包树里这条断言无法成立时**显式 `skip`**，不伪造"已忽略"——
+    但"清单本身在包里"这一句在两种树里都必须成立（`references/release.md`
+    「无 `.git` 是发布包的常态」）。
+    """
     assert os.path.isfile(MANIFEST)
-    with open(os.path.join(REPO_ROOT, ".gitignore"), encoding="utf-8") as handle:
+    ignore = os.path.join(REPO_ROOT, ".gitignore")
+    if not os.path.isfile(ignore):
+        pytest.skip("no .gitignore in this tree (unpacked sdist): ignore rules are a repo-tree fact")
+    with open(ignore, encoding="utf-8") as handle:
         text = handle.read()
     assert "fixtures/*.json" in text
     assert "!fixtures/manifest.json" in text

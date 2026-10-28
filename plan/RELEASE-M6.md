@@ -104,7 +104,8 @@
 5. `SHA256SUMS`（两件产物各一行）→ commit → tag → Release
 
 > 解包树回归（**解包即用**）：`tar xzf` 后在新目录里跑六道门 + `gen_fixtures.py --check` + `pytest`
-> 必须全绿。补 `MANIFEST.in` 之前这里 **2 门红 + 12 failed**；补之后见 §1.6 的数字。
+> 必须全绿。补 `MANIFEST.in` 之前这里 **2 门红 + 12 failed**；补之后见 §1.6 的数字
+> （`pytest` 为 302 passed + 1 skipped：那条 `skip` 是"解包树没有 `.gitignore`"的显式两态判定）。
 
 ### 1.5 构建产物
 
@@ -130,12 +131,13 @@
 | `tools/check_ci_workflow.py` | 1 份工作流 / 98 行 / 20 个 step；7 个门各自独立 step；矩阵含 3.8 + 3.12 |
 | `tools/gen_fixtures.py --check` | 31 件 fixture 位级一致，期望无漂移 |
 | `tools/verify_gates.py` | **32 组变异：符合预期 32 / 不符合 0**（阴性对照 7 组） |
-| `py -3.12 -m pytest -q` | **303 passed** |
-| `py -3.8 -m pytest -q` | **303 passed**（与 3.12 同数） |
+| `py -3.12 -m pytest -q` | **303 passed**（仓库树） |
+| `py -3.8 -m pytest -q` | **303 passed**（仓库树，与 3.12 同数） |
+| 解包树（无 `.git`）`pytest` | **302 passed + 1 skipped**——skip 的是 `test_manifest_is_committed_and_fixtures_are_not`（解包树没有 `.gitignore`，忽略规则在树里不成立；**显式 SKIP，不冒充 PASS**） |
 
 > 这些数字是 **tag 前那棵树**上的实测；tag 之后再跑会因"追加提交只动文档/清单"而不变。
 >
-> **本轮的三处实修**（顺序即发现顺序）：
+> **本轮的四处实修**（顺序即发现顺序）：
 > ① **`MANIFEST.in` 补三条白名单**——解包树缺 `examples/` / `fixtures/manifest.json` /
 > `.github/`，README 的"用法"首条命令与两道门在解包树里红；
 > ② **摘要面行尾归一**（`src/bpreflight/canonical.py` + `.gitattributes`）——见 §1.2 第二处，
@@ -144,7 +146,10 @@
 > `plan/05` §四"已知未验证项"里**表尾引用 `M6` + 状态格 `⬜`** 误当成状态行（"行里含 M6"）——
 > 改成**首格必须是 `M<k>`**（与布局门 `STATUS_LINE` 同口径），并给 L4 / L5 / L9 补
 > "全部 ✅ 之后"的第二态（把已 ✅ 的里程碑只在单副本退回 ⬜ / 删掉已收尾里程碑的交接单 /
-> 删掉发布留档）。**没有删测试、没有放宽断言**。
+> 删掉发布留档）。**没有删测试、没有放宽断言**；
+> ④ **一条判据改两态**——`test_manifest_is_committed_and_fixtures_are_not` 读 `.gitignore`
+> 才能断言"产物不入仓"，而 sdist 不带 `.gitignore`。解包树里**显式 SKIP 并写明理由**，
+> 不删测试、不写成 PASS（`references/release.md`「无 `.git` 是发布包的常态」）。
 
 ### 1.7 覆盖对账（阶段 7 出口门逐条）
 
