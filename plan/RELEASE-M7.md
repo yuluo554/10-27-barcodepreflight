@@ -137,8 +137,8 @@
 | --- | --- | --- |
 | tag 名 | `v0.1.1` | `git tag -l 'v0.1.1'` |
 | tag 类型 | annotated | `git cat-file -t v0.1.1` |
-| tag 对象 OID | 见 tag 后追加提交 | `git rev-parse v0.1.1` |
-| tag 指向的 commit | 见 tag 后追加提交 | `git rev-parse v0.1.1^{commit}` |
+| tag 对象 OID | `d070a5f503e6b3ca24147346dcdc60c58ee19582` | `git rev-parse v0.1.1` |
+| tag 指向的 commit | `67204d0a2b960f602c2afe2e98cf8474e1057805` | `git rev-parse v0.1.1^{commit}` |
 | tagger | 与 v0.1.0 同一身份（noreply 邮箱） | `git for-each-ref --format='%(taggername) %(taggeremail)' refs/tags/v0.1.1` |
 | 本文件在 tag 树里 | 在（`git cat-file -e` 通过） | `git cat-file -e v0.1.1:plan/RELEASE-M7.md` |
 
@@ -146,17 +146,17 @@
 
 | 事实 | 值 |
 | --- | --- |
-| `push main`（tag 前的提交） | 见 tag 后追加提交 |
-| `push tag v0.1.1` | 见 tag 后追加提交 |
+| `push main`（tag 前的提交） | RUN_MAIN `40687175968` — 3 个 job 全 `success`；注解 2 条（均为 `ubuntu-latest` 迁移平台公告，非弃用注解） |
+| `push tag v0.1.1` | RUN_TAG `40687930173` — 3 个 job 全 `success`；注解 2 条（同上） |
 | 对账规则 | 每个 push 事件对应一条 run；同 sha 的 branch run 与 tag run 是**合法两条**，两条都要绿。本表**不写"共 N 轮"**（会随每次回填自己变） |
-| 期望形态 | 矩阵已无 3.8 腿 ⇒ 3 个 job：`gates`、`tests (py3.12 ubuntu)`、`tests (py3.12 windows)`；且**不应再有** `Node.js 20 is deprecated` 注解（`checkout@v7` / `setup-python@v7`） |
+| 期望形态 | 实测 3 个 job：`gates`、`tests (py3.12 ubuntu)`、`tests (py3.12 windows)`；`Node.js 20 is deprecated` 注解已清零（`checkout@v7` / `setup-python@v7`）。仍余 2 条 `notice` 级平台公告：`ubuntu-latest` 将于 2026-10-19 迁移 Ubuntu 26（runner-images#14748），与本次改动无关，改动 workflow 才能消除 |
 
 ### 2.3 产物 `sha256` 与真下载复核
 
 | 产物 | `sha256` | 复核 |
 | --- | --- | --- |
-| `bpreflight-0.1.1-py3-none-any.whl` | 见 tag 后追加提交 | 真下载 → `sha256sum -c SHA256SUMS` → 与本地 `dist/` 件 `cmp` 逐字节一致 |
-| `bpreflight-0.1.1.tar.gz` | 见 tag 后追加提交 | 同上 |
+| `bpreflight-0.1.1-py3-none-any.whl` | `ca2a29739292b82ff4ce27bcdee57afbd4a2bbec7a78b8d4ecea1225485a0e77` | 真下载 → `sha256sum -c SHA256SUMS` → OK；与本地 `dist/` 件 `cmp` 逐字节一致（`WHEEL_IDENTICAL`） |
+| `bpreflight-0.1.1.tar.gz` | `d9509ae5a6f6f2fee1ee42ab874a4e292066b11afa7e14af1f5118cb136cb6f3` | 同上（`SDIST_IDENTICAL`） |
 | `SHA256SUMS` | （清单本身不入校验清单） | 真下载后与 Release 正文的 digest 行逐条比 |
 
 ### 2.4 tag 之后的改动面
