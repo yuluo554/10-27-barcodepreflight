@@ -7,14 +7,16 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：M4（报告与门禁）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
+**状态：M5（仿真回读）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
 四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）、**M2 符号层**（八符号 profile 数据表 +
 字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）、**M3 印刷层**（静区 / 放大率 /
-DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）与 **M4 报告层**（退出码 12 格逐格 +
-JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）。**M5（仿真回读，可选）与 M6（发布）未开工**；
-报告会在首屏 `SKIPPED:` 一栏里如实登记不可判的项。符号规则与印刷阈值本轮**全部
-`unverified`**（未取到规范原文 / GenSpec 原表），由它们派生的判定默认降级为 `warn`，
-`--strict-thresholds` 恢复 `error`；**DPI 混叠与颜色两项是工程判据，不参与降级**。
+DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）、**M4 报告层**（退出码 12 格逐格 +
+JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）与 **M5 回读层**（纯函数采样器 + 外部解码引擎
+探测 + `agreement` 三态；**本机没有解码引擎**，因此 `oracle` 一律如实报
+`skipped: oracle_absent`）。**M6（发布）未开工**；报告会在首屏 `SKIPPED:` 一栏里如实登记
+不可判的项。符号规则与印刷阈值本轮**全部 `unverified`**（未取到规范原文 / GenSpec 原表），
+由它们派生的判定默认降级为 `warn`，`--strict-thresholds` 恢复 `error`；
+**DPI 混叠与颜色两项是工程判据，不参与降级**。
 
 | 里程碑 | 状态 | 说明 |
 | --- | --- | --- |
@@ -23,7 +25,7 @@ JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）。**M5（仿�
 | M2 | ✅ | 符号层：八符号 profile（全部 `unverified`）+ 三段判定 + `encoding_plan`（本地等价校验，未接远端） |
 | M3 | ✅ | 印刷层：五项检查 + 边界值逐条 + `fix` 必填 + 未核降级 + `gen_fixtures.py`（本地等价校验，未接远端） |
 | M4 | ✅ | 报告与门禁：退出码 12 格逐格 + 端到端 JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定 + `--with-timestamp`（本地等价校验，未接远端） |
-| M5 | ⬜ | 栅格化仿真回读（可选） |
+| M5 | ✅ | 回读层：纯函数采样器 + 模块图案表 + 外部解码引擎探测 + `agreement` 三态（本地等价校验，未接远端）；缺引擎一律 `skipped: oracle_absent`，不伪造实测结论 |
 | M6 | ⬜ | 发布 |
 
 ## 为什么不是又一个生成器
@@ -57,12 +59,14 @@ bpreflight check --input examples/spec-ean13.json
 mkdir -p out && bpreflight check --input examples/spec-ean13.json --json --md
 bpreflight report --input examples/spec-ean13.json --format json
 bpreflight check --input examples/spec-ean13.json --fail-on=error
+mkdir -p out && bpreflight oracle --input examples/spec-ean13.json
 ```
 
 **输出落点**：`--json` / `--md` 是**开关**，不是路径 —— 它们把报告写到固定的
 `out/report.json` 与 `out/report.md`（`oracle` 写 `out/oracle-report.{json,md}`）。
 落点不含任何来自命令行的成分，`out/` 必须已存在（不静默建目录，否则 exit 3 且零副作用）。
 默认只打 stdout，CI 里 `bpreflight check --input spec.json > out/report.json` 同样可用。
+`oracle` 的退出码沿用主报告的 `--fail-on`（缺引擎**不是**用法错误，也不是 exit 3）。
 
 **首屏三段**（顺序与措辞是契约）：
 
@@ -170,6 +174,28 @@ TOP FIX: recompute_check_digit -> 09501101530003 digits
 | `--with-timestamp` | 默认无该字段；开了才有，格式 `YYYY-MM-DDTHH:MM:SSZ`，不含时区名/主机名 |
 | `out/` 落点 | 写盘字节与同一渲染器的 stdout **逐字节相等**；跑前跑后目录只多那两个文件 |
 
+### 回读层判什么（M5，可选）
+
+`oracle` 子命令把生成参数**合成**成一张灰度位图，交给**外部解码器**回读，再与 M3 的参数判定
+做**一致性对照**（**不改 M3 判定**）：
+
+| 判据 | 说明 |
+| --- | --- |
+| 采样器 | **纯函数**：`(plan, x_mm, dpi, 颜色) → 灰度位图`；同输入两次**字节相等**；无随机、**无抗锯齿**、不读文件 |
+| 几何 | `dots_per_module = X_mm / 25.4 × DPI`；模块边界四舍五入 ⇒ 低 DPI 下模块宽度可为 **0**（真实失现，不是缺陷） |
+| 灰度 | 复用 `print/color.py` 的 sRGB 定义，并按**照明的通道**取值：白光走亮度、红光走红通道反射率——所以"红条 + 红光"在回读域同样塌陷 |
+| 图案 | `src/bpreflight/data/vectors/sampler_patterns.json`（**全部 `unverified`**）：只存 `L` 组，`R = complement(L)`、`G = reverse(complement(L))` 由装载期派生；只建模 **EAN-13**，其余符号不猜图案 |
+| `agreement` | `consistent` / `m3_stricter`（M3 判有风险但解得出来 → 记入 `known-disagreements`）/ `m3_laxer`（**bug 通道**：必须修 M3，不许藏进已知差异） |
+| 缺引擎 | `skipped: oracle_absent`，**`agreement` 字段不产出**（不是 `null`）——不伪造实测结论 |
+| 引擎在但驱动不起来 | `skipped: engine_unusable:<detail>` —— **不等于**"解不出"（否则会凭空产出一条 `m3_laxer`） |
+
+`agreement` **不参与** `verdict`：同一份 spec 不会因为本机装没装解码引擎而产出不同结论。
+报告落 `out/oracle-report.{json,md}`（`oracle` 只写这两个文件）。**本机没有任何候选引擎**
+（`zxing-cpp` / `ZXingReader` / `zbarimg` 实测全无），所以真实运行时一律是
+`skipped: oracle_absent`；三样本（每模块不足 1 点 / 健康 / 红条 + 红光）的一致性由
+`tests/test_oracle.py` 里**可注入的解码器替身**复现（替身读真实落盘的 PNG 像素）——
+它验的是管线，**不是**阈值；阈值对错要真引擎才能验。
+
 ### 输入格式
 
 **首期只收 `.json`**，扩展名不符即 exit 3（**不做内容嗅探**）：
@@ -238,13 +264,15 @@ py -3.8  -m pytest -q                    # 3.8 通道（requires-python 的下�
 | `plan/01-题目文档.md` | 题面：痛点、已占位矩阵、五模块任务、评分、边界 |
 | `plan/02` – `plan/06` | 架构 / 模块详设 / 数据计划 / 里程碑 / 交付对标 |
 | `plan/HANDOFF-M4.md` | 上一棒交接单（报告与门禁的当前事实与不动点） |
-| `plan/HANDOFF-M5.md` | 下一棒交接单（仿真回读） |
+| `plan/HANDOFF-M5.md` | 第 5 棒交接单（回读层：纯函数采样器 / 图案表 / `agreement` 三态） |
+| `plan/HANDOFF-M6.md` | 下一棒交接单（发布棒） |
 | `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** + 内嵌字典身份（§3.1） |
 | `AGENTS.md` | 方法论锚点与门命令 |
 
 ## 边界（不做）
 
-不做生成器；不做编解码库；不做纯 GS1 AI 解析器；不做 GTIN/SSCC 主数据一致性（需联网）；
+不做生成器（M5 的采样器只为**回读对照**在内存里合成位图：不落图片文件、不代替生成器）；
+不做编解码库；不做纯 GS1 AI 解析器；不做 GTIN/SSCC 主数据一致性（需联网）；
 不做图像式 ISO/IEC 15416 ⚠️ 分级；不做色彩管理 / ICC；不做扫描器型号适配；不做 GUI / 服务端。
 
 ## 许可证

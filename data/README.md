@@ -267,7 +267,7 @@
 | Google / DuckDuckGo | HTTP GET | **000** | ⬜ |
 | GitHub search API | 部分检索式 | **中途 403 secondary rate limit** | ⚠️ 限流式记「未取」，不记 0 |
 | StackOverflow（网页直取） | 网页 | 原话由检索摘要取得；**正文页本轮未逐页直取** | ⚠️ |
-| zxing-cpp（M5 oracle） | 本地安装 | 首期按可选依赖处理；未安装时 M5 **显式跳过并标 `skipped: oracle_absent`** | ⬜ 本机未验证 |
+| zxing-cpp / zbar（M5 oracle） | 本地安装（**外部命令**，不 import 绑定） | 探测顺序 `zxing-cpp` → `ZXingReader` → `zbarimg`；一个都没有时 M5 **显式跳过并标 `skipped: oracle_absent`**（`agreement` 字段不产出） | ✅ **M5 已实测**：本机三者全无 ⇒ 一律 `oracle_absent`；**真引擎解码路径未验证**（命令模板未被观测过），一致逻辑用可注入替身验过（§9 第 7 项） |
 
 **运行期依赖**：首期**零网络**。所有外部数据（AI 字典 / 阈值向量）在建仓时**一次性内嵌进仓库**，运行时不发任何请求。
 
@@ -398,6 +398,15 @@ DD ∈ 01..当月天数 → 合法；DD > 当月天数 → invalid_date
        （`#C86E00` + 红光会同时触发两条，测试逐条断言）。
 - **"相对反射率"的定义**：单通道 8-bit 值 / 255，不做色彩管理、不引入 ICC
   （弃选项）。只做阈值判定，输出风险，不输出"扫描仪读到什么"。
+- **公式常数（不是阈值，无 `status`、不参与降级）**：sRGB 线性化
+  `c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4`，亮度权重
+  `0.2126 / 0.7152 / 0.0722`，对比公式的常数项 `0.05`，8-bit 通道上限 `255`。
+  它们只在 `src/bpreflight/print/color.py` 出现一次（改校准值才会动它们）。
+- **M5 采样器的灰度化（`oracle/sampler.py`）用同一份定义**：**不抄第二份**系数，
+  直接调 `print/color` 的 `relative_luminance` / `channel_reflectance`；并且按
+  `color_cases.json#illuminations.<name>.channel` 取值 —— `luminance`（白光）走相对亮度，
+  `red`（红光）走该通道的相对反射率。这样"红条 + 红光塌陷"在**参数域**（本节）与
+  **回读域**（M5 位图）是同一个物理量，而不是两套说法。
 - 分级术语若引用 ISO/IEC 15416 → ⚠️ 编号未核实，且**本工具不做 15416 分级本身**（见 §8.6）。
 
 ### 8.5 严重级别与退出码
@@ -471,6 +480,13 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
   **不得**出现本地时区名、时区缩写或主机名——那正是"同一输入在不同机器/不同时区产出不同报告"的入口（D11）。
   JSON 与 MD 都读同一个 `Report.timestamp`，因此两格式不可能一个有、一个没有。
 - 报告**不含**任何网络请求结果、不含用户主目录绝对路径（写相对路径或脱敏路径）。
+- **M5 的 oracle 报告是独立文档**（schema `bpreflight/oracle-report/1`，固定落
+  `out/oracle-report.{json,md}`）：字段
+  `{engine, m3_verdict, m3_findings, skipped, oracle_result, agreement,
+  known_disagreements, bugs, raster}`。**不掺进主报告** —— 主报告的 `findings` /
+  `summary` / `verdict` 一个字都不变（K25），且 `engine` 只写名字与版本，
+  **不写可执行文件的绝对路径**（同本节末条）。`agreement` / `oracle_result` / `raster`
+  只在**真跑过回读**时出现。
 
 ### 8.8 判定结论词表（一处定义）
 
@@ -494,6 +510,20 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
   - 报告头 `strict_thresholds: true|false`。
 - `--strict-thresholds` 的作用是把 `unverified` 项的 `severity` 由 `warn` 恢复为 `error`，从而 `verdict` 自然变成 `fail`——**不引入第四种 verdict**。
 
+**M5 的 `agreement`（本节唯一一处定义，K25）**：M5 只做**一致性对照**，**不改 M3 判定**
+（`plan/00` D10）。`oracle` 报告里三件：`{m3_verdict, oracle_result, agreement}`。
+
+| `agreement` | 条件 | 归宿 |
+|---|---|---|
+| `consistent` | M3 的风险结论与 oracle 回读一致（判有风险且解不出 / 判干净且解得出来） | 不登记 |
+| `m3_stricter` | M3 判有风险，oracle **解得出来** | `known-disagreements`（可能是假阳性） |
+| `m3_laxer` | M3 判干净，oracle **解不出来** | **bug 通道**：必须修 M3 判定，**不许**藏进 `known-disagreements` |
+
+- `agreement` 是**独立字段**，**不是** `verdict` 的第四个值，也**不参与** `verdict`：
+  同一输入不会因为"本机装没装解码引擎"而产出不同 `verdict`（§8.8 首条理由）。
+- **引擎缺失时 `agreement` 字段不产出**（不是 `null` —— 是缺席）：这一层没跑（G6）。
+- `m3_verdict` 是 M3 findings 自己的投影（`pass|warn|fail`），不掺 M1/M2 的结论。
+
 ### 8.9 不可判（gray）条件
 
 > 本题不设第四种 `verdict`（§8.8），但**必须有显式的"不可判"通道**，否则工具会用未核阈值假装确定。以下情形一律**降级标注**，不得当作确定结论：
@@ -509,6 +539,21 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 
 - **gray 的唯一合法表达** = `threshold_status` / `skipped` / `severity` 降级**三者之一**，而**不是** `verdict` 的第四个值。
 - **禁止"用 `pass` 表示不知道"**：G1–G6 任一触发时，该条目不得以 `ok`/`pass` 形式出现。
+
+**M5 的 `skipped` 值（同一原则：没跑就说没跑；一处定义在此，K25 的落地词表）**：
+
+| 值 | 触发 | 含义 |
+|---|---|---|
+| `oracle_absent` | 本机没有任何候选解码引擎（`shutil.which` 全空） | 这一层没跑 |
+| `engine_unusable:<detail>` | 引擎在，但驱动不起来（起不来 / 超时 / 退出码与输出无法解释） | 没跑 —— **不等于**"解不出" |
+| `sampler_unsupported:<symbol>` | 模块图案表没建模该符号（2D、图案表外的 1D） | 不猜图案 |
+| `sampler_input_incomplete:<field,…>` | 采样所需参数不全（`x_dimension_mm` / `target_dpi` / `quiet_zone_mm` / `bar_height_mm`），或 M3 已判 `input_incomplete` | 不补默认值 |
+| `sampler_unmodelled_colour:<…>` | 颜色 / 照明超出建模面（与 G5 同族：`ir` 或表外照明） | 不猜灰度 |
+| `sampler_unencodable_data:<symbol>` | 字符流与图案表结构不符（长度 / 字符集 / 没有 `encoding_plan`） | 不产出半条模块行 |
+
+- **`engine_unusable` 与"解不出"必须分开**：把前者读成后者会凭空产出一条 `m3_laxer`
+  并逼人去"修"一个并不存在的 M3 bug（`plan/HANDOFF-M5` §二.7）。
+- 这些值**只出现在 `oracle` 报告**里；`check` 的主报告不因本机装没装引擎而改变一个字。
 
 ### 8.10 符号可行性（M2）
 
@@ -552,10 +597,11 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | 4 | 名义 X = 0.330 mm、条高 22.85 mm、放大率区间、贴近带 1.2 | ⚠️ **M3 已接判定** | 二手；须核 GenSpec 原表。放大率与条高已外置并降级；贴近带是工程判据（不降级） |
 | 5 | `yymmd0` 在 11/13/15/17 四类日期上的逐条适用性 | ✅ **M1 已核对** | 以字典原文行逐条确认（实为 8 条：11/12/13/15/16/17/4324/4325，见 §3）；同族 `yymmdd` 6 条、`yyyymmdd` 2 条另计 |
 | 6 | 各符号的容量/模式切换表 | ⚠️ **M2 已落库但全部 `unverified`** | 规范原文仍 403；`symbol_profiles.json` 每条规则带 `source`/`status`/`verified_at`，未核规则派生的判定降级为 `warn`（§8.10）；官方编码器交叉验证未做 |
-| 7 | zxing-cpp 本机可用性 | ⬜ | 本机未验证；M5 缺失时标 `skipped: oracle_absent` |
+| 7 | zxing-cpp / zbar 本机可用性 | ✅ **M5 已实测探测** | `zxing-cpp` / `ZXingReader` / `zbarimg` 在本机 `shutil.which` 全为空 ⇒ `oracle` 走 `skipped: oracle_absent`。**真引擎的解码路径本轮未验证**（命令模板未被观测过）；一致性三态用可注入的解码器替身验过（替身读的是真实落盘的 PNG 像素） |
 | 8 | StackOverflow 正文页 | ⚠️ | 本轮取到检索摘要，未逐页直取正文 |
 | 9 | en.wikipedia.org / Google / DuckDuckGo | ⬜ | 000 超时 |
-| 10 | 本机 Python 运行时 | ✅ **已确认** | `python` / `python3` 指向 Windows Store 占位（执行即 exit 49）；可用解释器 `py -3.8` = 3.8.8、`py -3.12` = 3.12.10。M3 起双通道实跑；M4 双通道 **269 passed**（同数） |
+| 10 | 本机 Python 运行时 | ✅ **已确认** | `python` / `python3` 指向 Windows Store 占位（执行即 exit 49）；可用解释器 `py -3.8` = 3.8.8、`py -3.12` = 3.12.10。M3 起双通道实跑；M4 双通道 **269 passed**（同数）、M5 双通道 **299 passed**（同数） |
+| 11 | M5 采样器的模块图案表（`src/bpreflight/data/vectors/sampler_patterns.json`） | ⚠️ **全部 `unverified`** | 零售符号（EAN-13）的模块图案属公开常识，但本轮同样没取到规范原表（`iso.org` / `gs1.org` 403），且**真引擎未复核**。表内只放 `L` 组 10 个 7 位码，`R` = `complement(L)`、`G` = `reverse(complement(L))` 由装载期派生，parity 表逐首位；结构不变量（L 奇校验、G 偶校验、守卫、95 模块）由 `tests/test_oracle.py` 常驻断言。**不得**把它写成规范要求 |
 
 ---
 

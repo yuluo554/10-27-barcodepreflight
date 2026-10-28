@@ -150,6 +150,57 @@ def test_oracle_requires_out_dir(tmp_path, capsys, monkeypatch):
     assert "does not exist" in capsys.readouterr().err
 
 
+def test_oracle_writes_nothing_else(tmp_path, capsys, monkeypatch):
+    """`oracle` 只能新增 `out/oracle-report.{json,md}` —— 主报告与 oracle 报告分清。
+
+    这条是 `test_out_writes_nothing_else` 的**同族判据，不是它的替代**（M5 的落点判据
+    另写一条，避免把主报告面的回归掩盖在一条"两个子命令都测"的宽松断言里）。
+    """
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "spec.json"
+    spec.write_text(
+        '{"schema": "bpreflight/spec/1", "symbol": "ean13", "x_dimension_mm": "0.330",'
+        ' "target_dpi": 300, "quiet_zone_mm": {"left": "4.5", "right": "3.3",'
+        ' "top": "0", "bottom": "0"}, "bar_height_mm": "22.85",'
+        ' "bar_color": "#000000", "space_color": "#FFFFFF", "illumination": "white"}',
+        encoding="utf-8",
+    )
+    (tmp_path / "out").mkdir()
+    before = _tree(tmp_path)
+    assert main(["oracle", "--input", str(spec)]) == 0
+    capsys.readouterr()
+    after = _tree(tmp_path)
+
+    added = sorted(set(after) - set(before))
+    assert added == ["out/oracle-report.json", "out/oracle-report.md"], added
+    removed = sorted(set(before) - set(after))
+    assert removed == [], removed
+    # 主报告的两个固定落点一个都不许被 oracle 顺手写出来。
+    assert not (tmp_path / "out" / "report.json").exists()
+    assert not (tmp_path / "out" / "report.md").exists()
+
+
+def test_oracle_exit_code_comes_from_the_m3_report(tmp_path, capsys, monkeypatch):
+    """缺引擎不是用法错误（不是 exit 3），也不自造门槛：退出码沿用主报告的 `--fail-on`。"""
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "spec.json"
+    spec.write_text(
+        '{"schema": "bpreflight/spec/1", "symbol": "ean13", "x_dimension_mm": "0.330",'
+        ' "target_dpi": 70, "quiet_zone_mm": {"left": "4.5", "right": "3.3",'
+        ' "top": "0", "bottom": "0"}, "bar_height_mm": "22.85",'
+        ' "bar_color": "#000000", "space_color": "#FFFFFF", "illumination": "white"}',
+        encoding="utf-8",
+    )
+    (tmp_path / "out").mkdir()
+    assert main(["oracle", "--input", str(spec), "--fail-on", "error"]) == 2
+    written = (tmp_path / "out" / "oracle-report.md").read_text(encoding="utf-8")
+    assert "oracle_absent" in written
+    assert "RASTER:" not in written  # 没跑回读就不该有位图产物摘要
+
+    assert main(["oracle", "--input", str(spec)]) == 0  # 默认 --fail-on=none
+    capsys.readouterr()
+
+
 def _tree(root):
     """相对路径 → 字节数；用于"跑前跑后目录列表相等"的判据。"""
     entries = {}

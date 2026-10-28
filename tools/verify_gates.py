@@ -176,18 +176,27 @@ def m_layout_status(m):
 
 
 def m_layout_handoffs(m):
-    """挑一个**没有**交接单的 ⬜ 里程碑，在三处副本里全标 ✅ → 必须要求 HANDOFF 而它不存在。
+    """标一个待办里程碑 ✅，但让它的**交接单不存在** → 必须要求 HANDOFF 而它不在。
 
-    靶子由构造算出，不写死里程碑号：写死 M1 会在 M1 的交接单落盘后失效
-    （`references/methodology-binding.md` 假门族 ⑭「靶子过期」的同族）。
+    靶子由构造算出，不写死里程碑号（写死 M1 会在 M1 的交接单落盘后失效，
+    `references/methodology-binding.md` 假门族 ⑭「靶子过期」）。
+
+    两态探测（M5 收尾补）：下一棒的交接单通常在上一棒收尾时就**预写**了
+    （`plan/HANDOFF-M<k+1>.md`），于是"待办里程碑里没有交接单的那个"可能一个都不剩
+    ——那时先把该里程碑的交接单删掉，变异仍是"标 ✅ 却缺交接单"这一件事。
     """
+    pending = _pending_milestones(m.root)
+    assert pending, "plan/05 里已经没有 ⬜ 里程碑了 —— 这条变异失去了靶子"
     candidates = [
         milestone
-        for milestone in _pending_milestones(m.root)
+        for milestone in pending
         if not os.path.isfile(m.path("plan/HANDOFF-M{}.md".format(milestone)))
     ]
-    assert candidates, "找不到任何'没有交接单的待办里程碑'（项目已全部完成？）"
-    milestone = candidates[0]
+    # `milestone` 由构造保证是**待办**里程碑，所以下面删掉的一定是"预写但未收尾"的交接单。
+    milestone = candidates[0] if candidates else pending[0]
+    prewritten = "plan/HANDOFF-M{}.md".format(milestone)
+    if os.path.isfile(m.path(prewritten)):
+        m.delete(prewritten)
 
     changed = 0
     for rel in (PLAN00, PLAN05, README):

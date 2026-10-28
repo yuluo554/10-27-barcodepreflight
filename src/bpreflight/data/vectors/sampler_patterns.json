@@ -1,0 +1,55 @@
+{
+  "schema": "bpreflight/sampler-patterns/1",
+  "note": "M5 采样器的模块图案表。用途只有一个：把 M2 的 encoding_plan 变成可栅格化的模块行，供 oracle 回读对照（plan/01 §M5）。它不是阈值（不参与未核降级），但也不是【已核规范原文】——本轮没有取到任何符号规范原文（iso.org / gs1.org 403），因此每条 status 恒为 unverified，且本文件不得被文档写成规范要求。按图案表建模之外的符号（ean8 / upca / code128 / gs1-128 / qr / datamatrix / code39）一律不采样：走 skipped: sampler_unsupported:<symbol>，不猜图案。",
+  "sources": {
+    "placeholder-spec": "占位：零售符号的模块图案属公开常识，但本轮未取到规范原表，标 unverified（data/README.md §9）"
+  },
+  "symbols": {
+    "ean13": {
+      "family": "linear-retail",
+      "parity_digits": 1,
+      "left_digits": 6,
+      "right_digits": 6,
+      "digits_required": 13,
+      "modules_total": 95,
+      "guards": {
+        "start": "101",
+        "middle": "01010",
+        "end": "101"
+      },
+      "code_sets": {
+        "L": [
+          "0001101",
+          "0011001",
+          "0010011",
+          "0111101",
+          "0100011",
+          "0110001",
+          "0101111",
+          "0111011",
+          "0110111",
+          "0001011"
+        ]
+      },
+      "derivations": {
+        "R": "complement(L)",
+        "G": "reverse(complement(L))"
+      },
+      "parity_first_digit": {
+        "0": "LLLLLL",
+        "1": "LLGLGG",
+        "2": "LLGGLG",
+        "3": "LLGGGL",
+        "4": "LGLLGG",
+        "5": "LGGLLG",
+        "6": "LGGGLL",
+        "7": "LGLGLG",
+        "8": "LGLGGL",
+        "9": "LGGLGL"
+      },
+      "source": "placeholder-spec",
+      "status": "unverified",
+      "verified_at": null
+    }
+  }
+}

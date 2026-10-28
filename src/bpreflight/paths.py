@@ -18,7 +18,8 @@ DICT_DIR = os.path.join(DATA_DIR, "gs1-syntax-dictionary")
 #: 随包发行的向量文件（按固定序，输出可复现）。
 #: M1 新增 `gs1_vectors.json`（语义用例 + 校验位向量）与 `dict_manifest.json`（字典身份）；
 #: M2 新增 `symbol_profiles.json`（八符号的字符集 / 容量 / 模式表）；
-#: M3 新增 `color_cases.json`（照明建模表 + 颜色回归用例）。
+#: M3 新增 `color_cases.json`（照明建模表 + 颜色回归用例）；
+#: M5 新增 `sampler_patterns.json`（采样器的模块图案表，只供 oracle 回读用，不是阈值）。
 VECTOR_FILES = (
     "quiet_zone.json",
     "gen_spec.json",
@@ -26,6 +27,7 @@ VECTOR_FILES = (
     "gs1_vectors.json",
     "dict_manifest.json",
     "symbol_profiles.json",
+    "sampler_patterns.json",
 )
 
 

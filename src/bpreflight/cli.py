@@ -25,6 +25,8 @@ from bpreflight import pipeline
 from bpreflight import thresholds
 from bpreflight.gs1 import dictionary as dictionary_mod
 from bpreflight.gs1 import vectors as vectors_mod
+from bpreflight.oracle import audit as oracle_audit
+from bpreflight.oracle import layout as oracle_layout
 from bpreflight.report import render_json, render_md
 
 PROG = "bpreflight"
@@ -37,6 +39,7 @@ DATA_ERRORS = (
     thresholds.ThresholdError,
     dictionary_mod.DictionaryError,
     vectors_mod.VectorError,
+    oracle_layout.LayoutError,
 )
 
 #: 固定落点。**不含任何来自 argv 的成分** —— 这是 D20 的结构性要求。
@@ -186,15 +189,14 @@ def _emit(argv, parser):
         elif args.command == "report":
             sys.stdout.write(json_text if args.format == "json" else md_text)
         elif args.command == "oracle":
-            # M5 未实现：不伪造 oracle 结论，只如实标注缺席。
-            skip_text = (
-                "schema: bpreflight/oracle-report/1\n"
-                "skipped: oracle_absent\n"
-                "reason: M5 not implemented in this milestone\n"
-            )
-            _write_fixed(ORACLE_JSON, json_text)
-            _write_fixed(ORACLE_MD, skip_text)
-            sys.stdout.write(md_text)
+            # M5：回读对照。**不改 M3 判定**（D10）；缺引擎时报告自己说
+            # `skipped: oracle_absent`，`agreement` 字段不产出（§8.9 G6）。
+            # 计算在前、写盘在后：`out/` 不存在时 exit 3 且零副作用。
+            oracle_result = oracle_audit.assess(rep, payload)
+            oracle_md, oracle_json = oracle_result.render_md_and_json()
+            _write_fixed(ORACLE_JSON, oracle_json)
+            _write_fixed(ORACLE_MD, oracle_md)
+            sys.stdout.write(oracle_md)
     except DATA_ERRORS as exc:
         sys.stderr.write("{}: error: {}\n".format(PROG, exc))
         return exitcodes.EXIT_USAGE
