@@ -4,6 +4,12 @@ include AGENTS.md
 include pyproject.toml
 
 # 白名单，不用 graft：sdist 自足性靠"解包即用"验证（M6）。
+# README 的每条命令都得在解包树里敲得通：示例输入（"用法"一节）、fixture 清单
+# （`gen_fixtures.py --check` 与 `tests/test_fixtures.py`）、CI 工作流
+# （`check_ci_workflow.py`）三者缺一个，解包树里就会红（M6 解包实测 12 failed + 2 门红）。
+recursive-include examples *.json
+include fixtures/manifest.json
+recursive-include .github *.yml
 recursive-include src/bpreflight/data *.json
 # M1 内嵌官方字典：正文 + 上游许可 + 来源声明（缺一个就违反 Apache-2.0 的归属要求）。
 recursive-include src/bpreflight/data/gs1-syntax-dictionary *.txt LICENSE NOTICE

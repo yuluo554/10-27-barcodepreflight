@@ -7,16 +7,19 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：M5（仿真回读）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
-四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）、**M2 符号层**（八符号 profile 数据表 +
-字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）、**M3 印刷层**（静区 / 放大率 /
-DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）、**M4 报告层**（退出码 12 格逐格 +
-JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）与 **M5 回读层**（纯函数采样器 + 外部解码引擎
-探测 + `agreement` 三态；**本机没有解码引擎**，因此 `oracle` 一律如实报
-`skipped: oracle_absent`）。**M6（发布）未开工**；报告会在首屏 `SKIPPED:` 一栏里如实登记
+**状态：v0.1.0 · 五层已交付**（M1 数据层 / M2 符号层 / M3 印刷层 / M4 报告层 / M5 回读层）。
+已落盘 **M1**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 + 四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）、
+**M2**（八符号 profile 数据表 + 字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）、
+**M3**（静区 / 放大率 / DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）、
+**M4**（退出码 12 格逐格 + JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）与
+**M5**（纯函数采样器 + 外部解码引擎探测 + `agreement` 三态；**本机没有解码引擎**，因此
+`oracle` 一律如实报 `skipped: oracle_absent`）。报告会在首屏 `SKIPPED:` 一栏里如实登记
 不可判的项。符号规则与印刷阈值本轮**全部 `unverified`**（未取到规范原文 / GenSpec 原表），
 由它们派生的判定默认降级为 `warn`，`--strict-thresholds` 恢复 `error`；
 **DPI 混叠与颜色两项是工程判据，不参与降级**。
+
+> 发布状态（是否已发布、CI 是否绿、附件与校验和）看 **Release 页**与 `plan/RELEASE-M6.md`；
+> 本文件是随包文档，不自称发布进度。
 
 | 里程碑 | 状态 | 说明 |
 | --- | --- | --- |
@@ -26,7 +29,7 @@ JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）与 **M5 回读
 | M3 | ✅ | 印刷层：五项检查 + 边界值逐条 + `fix` 必填 + 未核降级 + `gen_fixtures.py`（本地等价校验，未接远端） |
 | M4 | ✅ | 报告与门禁：退出码 12 格逐格 + 端到端 JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定 + `--with-timestamp`（本地等价校验，未接远端） |
 | M5 | ✅ | 回读层：纯函数采样器 + 模块图案表 + 外部解码引擎探测 + `agreement` 三态（本地等价校验，未接远端）；缺引擎一律 `skipped: oracle_absent`，不伪造实测结论 |
-| M6 | ⬜ | 发布 |
+| M6 | ✅ | 发布：annotated tag `v0.1.0` + GitHub Release（`sdist` / `wheel` / `SHA256SUMS`）+ `plan/RELEASE-M6.md`（两栏 + 阶段 7 覆盖对账） |
 
 ## 为什么不是又一个生成器
 
@@ -51,6 +54,27 @@ py -3.12 -m bpreflight --help
 
 > Windows 上 `python` / `python3` 可能是应用商店占位符（执行即 exit 49）。**一律用 `py -3.12`**；
 > 中文输出加 `-X utf8`。`requires-python = ">=3.8"`，由 `tools/check_python_floor.py` 用 AST 守。
+
+## 下载即用（Release 附件）
+
+Release 页附三件：`bpreflight-0.1.0-py3-none-any.whl`（**推荐**：字典 / 向量 / 图案表随包安装）、
+`bpreflight-0.1.0.tar.gz`（含 `plan/` 与六道门，解包即可跑 `pytest`）、`SHA256SUMS`。
+
+```bash
+py -3.12 -m pip install bpreflight-0.1.0-py3-none-any.whl
+bpreflight --version
+```
+
+校验（Git Bash / Linux / macOS 用第一条，Windows `cmd` 用第二条）：
+
+```bash
+sha256sum -c SHA256SUMS
+certutil -hashfile bpreflight-0.1.0-py3-none-any.whl SHA256
+```
+
+两个摘要也逐行列在 **Release 正文**里（与附件同页）。**包内文档不重复写摘要**——
+写进包里的摘要会随"写它这个动作"立刻过期；`SHA256SUMS` 与本文件的附件名由
+`tests/test_cli_contract.py` 断言与当前版本一致（版本升了忘改这里会红）。
 
 ## 用法
 
@@ -265,7 +289,8 @@ py -3.8  -m pytest -q                    # 3.8 通道（requires-python 的下�
 | `plan/02` – `plan/06` | 架构 / 模块详设 / 数据计划 / 里程碑 / 交付对标 |
 | `plan/HANDOFF-M4.md` | 上一棒交接单（报告与门禁的当前事实与不动点） |
 | `plan/HANDOFF-M5.md` | 第 5 棒交接单（回读层：纯函数采样器 / 图案表 / `agreement` 三态） |
-| `plan/HANDOFF-M6.md` | 下一棒交接单（发布棒） |
+| `plan/HANDOFF-M6.md` | 第 6 棒交接单（发布棒，已收尾） |
+| `plan/RELEASE-M6.md` | 发布留档：tag 前事实 + tag 后追加栏 + 阶段 7 覆盖对账 |
 | `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** + 内嵌字典身份（§3.1） |
 | `AGENTS.md` | 方法论锚点与门命令 |
 

@@ -6,7 +6,7 @@
 - **产出**：仓库 `10-27-barcodepreflight`，CLI 入口 `bpreflight`
 - **形态**：**纯本地 CLI**（零网络、参数驱动；开源解码器只作可选 oracle）
 - **基准日**：2026-10-27｜**代理实际检索窗口 2026-10-27T10:56Z – 11:14Z**
-- **当前状态**：**M5 仿真回读已完成**（纯函数采样器 + 模块图案表 + 外部引擎探测 + `agreement` 三态 + `out/oracle-report.{json,md}` 固定落点；缺引擎一律 `skipped: oracle_absent`，不伪造实测结论）；M1 数据先行、M2 符号合法性、M3 印刷可读性、M4 报告与门禁均已完成；**M6 发布未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
+- **当前状态**：**M6 发布已完成**（`v0.1.0`：annotated tag + GitHub Release 附 `sdist` / `wheel` / `SHA256SUMS` + `plan/RELEASE-M6.md` 两栏与阶段 7 覆盖对账）；M1 数据先行、M2 符号合法性、M3 印刷可读性、M4 报告与门禁、M5 仿真回读均已完成。**CI 待首推后回填 run id**，此前所有 CI 类结论均为"本地等价校验（未接远端）"。
 - **定位宣言**："生成器是红海（JsBarcode **5896★** / zint **821★** / python-barcode **658★** / BWIPP **504★**），GS1 AI 解析也已被官方参考实现占住（`gs1/gs1-syntax-engine` **52★**）。**空白在'印出来扫得出吗'这一层**：从生成参数（符号类型、X-dimension、静区、目标 DPI、条/空颜色、条高、放大率）直接判定'这个条码印出来会扫不出'并给可执行修复项——**不依赖图像采集**。"
 
 ---
@@ -15,13 +15,13 @@
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v7（M5 收尾） |
+| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v8（M6 收尾） |
 | `plan/01-题目文档.md` | 十段式题面：头部 / 介绍 / 五模块任务 / 提交材料 / 评分 / 锚点 / 边界 | ✅ v1 |
 | `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v5（M5 收尾） |
 | `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v5（M5 收尾） |
 | `plan/04-数据计划.md` | 数据清单 / 真值纪律 / 阈值三态 / 生成与冻结 / 已知缺口 | ✅ v4（M5 收尾） |
-| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v6（M5 收尾） |
-| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D28 | ✅ v6（M5 收尾） |
+| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v7（M6 收尾） |
+| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D28 | ✅ v7（M6 收尾） |
 | `plan/HANDOFF-M1.md` | 第 1 棒交接单（七节） | ✅ v1（已收尾） |
 | `plan/HANDOFF-M2.md` | 第 2 棒交接单（七节） | ✅ v1（已收尾） |
 | `plan/HANDOFF-M3.md` | 第 3 棒交接单（七节） | ✅ v1（已收尾） |
@@ -30,11 +30,10 @@
 | `plan/HANDOFF-M6.md` | 第 6 棒交接单（发布棒，七节） | ✅ v1 |
 | `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8，含 §8.10 符号可行性）** + **内嵌快照身份（§3.1）** | ✅ v6（M5 收尾） |
 | `AGENTS.md` | 方法论锚点：布局门命令、强制布局清单、环境事实 | ✅ v1 |
-| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v6（M5 收尾） |
+| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v7（M6 收尾） |
 | `LICENSE` | Apache-2.0 全文 | ✅ v1 |
 | `.gitignore` | Python 标准模板 + `*.png` 等生成产物不入仓 | ✅ v1 |
-
-**待建（按里程碑产出，不预先占位）**：`plan/RELEASE-M6.md`（M6）。
+| `plan/RELEASE-M6.md` | 发布留档：tag 前事实（D13 重名核对 / 干净环境验证 / 脱敏四步 / 构建产物 / 门与测试）+ tag 后追加栏 + **阶段 7 覆盖对账（逐条三态）** | ✅ v1 |
 
 > `src/bpreflight/gs1/`（M1）、`src/bpreflight/data/gs1-syntax-dictionary/`（M1）、
 > `src/bpreflight/symbols/`（M2）、`src/bpreflight/print/`（M3）、`tools/gen_fixtures.py` + `fixtures/manifest.json`（M3）、
@@ -63,7 +62,7 @@
 | D10 | 2026-10-27 | **M5 只做一致性对照，不改 M3 判定** | `agreement ∈ {consistent, m3_stricter, m3_laxer}`。`m3_stricter` 记入 `known-disagreements`（可能是假阳性）；**`m3_laxer` 必须当 bug 修**（M3 判安全但 oracle 解不出）。这样"参数判定"和"实测判定"的差异变成**一等公民**，而不是被藏起来。 |
 | D11 | 2026-10-27 | **报告默认无时间戳** | 确定性优先：同输入两次导出必须 byte 级一致。需要时间信息时用 `--with-timestamp`，报告头标 `"deterministic": false`。 |
 | D12 | 2026-10-27 | **数值口径单点定义在 `data/README.md` §8** | 校验位算法 / 静区判定 / 放大率区间 / DPI 阈值 / 灰度条件 / 退出码 / 报告字段全部只在 §8 出现一次；`plan/01` 中的数字是**摘要**。**修改必须先改 §8 并同提交同步。** 代码里出现裸阈值字面量由 `tools/check_thresholds.py` 静态拦。 |
-| D13 | 2026-10-27 | **仓库名与 CLI 名的重名检查推迟到 M6，但列入 DoD** | `bpreflight` / `10-27-barcodepreflight` 发布前须核对 PyPI 与 GitHub 同名占用；若占用则改名并记录映射。⬜ 未执行。 |
+| D13 | 2026-10-27 | **仓库名与 CLI 名的重名检查推迟到 M6，但列入 DoD** | `bpreflight` / `10-27-barcodepreflight` 发布前须核对 PyPI 与 GitHub 同名占用；若占用则改名并记录映射。**✅ 2026-10-28 已执行**：PyPI `GET /pypi/bpreflight/json` 与 `/pypi/10-27-barcodepreflight/json` 均 **HTTP 404**（未占用）；GitHub `search/repositories` 两条检索 `total_count = 0`（成功响应，非限流假 0）→ **不改名、无映射**（`plan/RELEASE-M6.md` §1.1）。 |
 | D14 | 2026-10-27 | **首期输入格式只收 JSON** | `tomllib` 是 3.11+，而 `requires-python >= 3.8`；为 TOML 引第三方库违反零依赖红线。**扩展名不符即 exit 3，不做内容嗅探**。TOML 列二期。详见 `plan/06` §四。 |
 | D15 | 2026-10-27 | **运行期数据全部随包安装** | 向量与字典放 `src/bpreflight/data/`，不放仓库根 `data/`/`vendor/`：`package-data` 的 glob 不递归且根目录数据进不了 wheel（`references/release.md` 安装面条）。`tests/test_package_data.py` 断言"装好的能读到"。 |
 | D16 | 2026-10-27 | **骨架期用 `implementation_pending` 而非空 findings** | 空 findings 会派生 `verdict: pass`，等于"工具说这个条码没问题"。用一条 `error` 级 finding 让骨架必然 fail，M1 落地同提交退役。详见 `plan/03` §二。**✅ 2026-10-27 到期已履行**：该 id 已退役，换成两条更强的不变式——"该 id 不再出现"与"`pass` 只在真有判定发生时可能出现"（`plan/HANDOFF-M2` §二）。 |
@@ -123,7 +122,7 @@
 | 输入参数缺失时拒绝判定（不静默补默认值） | `data/README.md` §8.9 G3 | M3 | 缺 `x_dimension_mm` → `input_incomplete`（error），不出现任何 `quiet_zone_*` / `magnification_*` / `raster_*` 结论 | ✅ M3 |
 | 三态查证齐（✅/⚠️/⬜） | `data/README.md` | 文档 | 人工核对 + §9 未核清单 | ✅（骨架期） |
 | ISO 编号全部 ⚠️ 标注 | 决策 D4 | 文档 | `grep -n "ISO/IEC"` 逐条看是否有 ⚠️ | ✅（骨架期） |
-| 发布：tag + GitHub Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `plan/RELEASE-M6.md` §覆盖对账无空项 | ⬜ |
+| 发布：tag + GitHub Release 附产物 + 发布留档三件套 | 发布纪律 | 公开仓库 | `plan/RELEASE-M6.md` §覆盖对账逐条有归宿（实现 / 不适用+理由 / 待首推），无空项 | ✅ M6（tag `v0.1.0`；CI run id 待首推后回填，见 `plan/RELEASE-M6.md` §二） |
 | 跨符号等价性逐条有原因（字符集/长度/结构/模式） | `plan/01` §M2 | 源码 + 测试 | `tests/test_symbols.py` 三组用例逐条断言；禁写"前缀"措辞 | ✅ M2 |
 | `encoding_plan` 切分唯一（`tie_break: "longest-first"`） | `plan/01` §M2 确定性纪律 | 源码 | 双跑相等 + `tie_break` 字段断言 + 段文本拼接等于输入 | ✅ M2 |
 | 符号规则全部数据驱动且带三态 | `plan/04` D4 | `symbol_profiles.json` | 每条规则 `source`/`status`/`verified_at`；装载期校验（`tests/test_symbols.py`） | ✅ M2 |
@@ -170,7 +169,7 @@
 | **M3 · 印刷可读性** | 五项检查（静区/放大率/DPI 混叠/条高/颜色）+ `fix` 必填 + 阈值外置带三态 | **`quiet_zone_absent`（零静区）恒 error 且不依赖任何未核数字**；`quiet_zone_insufficient` 按阈值状态升降；python-barcode #41 类场景可复现；放大率边界 4 值逐条测；DPI 四值边界逐条测；阈值项未核降级为 `warn` 且 `--strict-thresholds` 恢复 `error`（**DPI/颜色两项不参与降级**）；`tools/check_thresholds.py` 0 命中 | ✅ |
 | **M4 · 报告与门禁** | JSON + MD 同源 + 退出码矩阵 + `--fail-on` + fingerprint | 退出码矩阵逐格全覆盖；两格式 `findings` 按 fingerprint 完全相等；首屏三段字面断言；零网络 AST 扫 0 命中 | ✅ |
 | **M5 · 仿真回读（可选）** | 纯函数采样器 + 模块图案表 + 外部引擎探测 + `agreement` 三态 | 采样器纯函数（字节相等 / 无随机 / 无抗锯齿 / 不读文件）；图案表自洽（L 奇校验 / G 偶校验 / 95 模块 / 守卫）；位图往返（测试侧解码器只读像素）；三样本双断言一致；`m3_laxer` 走 bug 通道；oracle 缺失标 `skipped: oracle_absent` 且 `agreement` 缺席；`engine_unusable` ≠ `not-decoded` | ✅ |
-| **M6 · 发布** | 公开发布 | **DoD = `git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（tag 前落盘进 tag 树，"tag 时点事实 / tag 后追加事实"两栏）**；发布为 **GitHub 公开仓库**；许可证已落定（D7）；仓库名/包名重名已核对（D13） | ⬜ |
+| **M6 · 发布** | 公开发布 | **DoD = `git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（tag 前落盘进 tag 树，"tag 时点事实 / tag 后追加事实"两栏）**；发布为 **GitHub 公开仓库**；许可证已落定（D7）；仓库名/包名重名已核对（D13） | ✅ |
 
 > **M1 排在最前是刻意的**：校验位与 AI 语义是**唯一有官方 oracle 的部分**，先把这块钉死（向量 + 官方字典），后面的判定才有可信基座。M3 是差异化核心，但它建立在 M1/M2 的"数据合法"前提上——数据层不合法时，印刷层判定的意义有限。
 >
@@ -213,6 +212,26 @@
 > ③ **本机无引擎 ⇒ 一律 `skipped: oracle_absent`，`agreement` 字段缺席而不是 `null`**——
 > "跑了但没结论"与"这一层没跑"是两件事，机读消费方必须能区分；三样本的一致性由
 > **可注入替身**复现（替身读真实落盘的 PNG 像素），并在文档里写明它验的是管线、不是阈值。
+>
+> **兑现记录（2026-10-28）**：M6 已收尾——D13 重名核对（PyPI 404 / GitHub 0，不改名）→
+> 干净环境两通道验证（源码树装 / sdist 装，README 逐条真敲，退出码 0/2/3 留档）→
+> 脱敏四步（12 提交作者与提交者单一 noreply，122 份文本 0 命中，产物扫描只命中
+> `fixtures/manifest.json`）→ 交付面定稿后构建 `sdist` + `wheel` + `SHA256SUMS`
+> （`twine check` 两件 PASSED）→ annotated tag `v0.1.0` + GitHub Release →
+> `plan/RELEASE-M6.md` 两栏 + 阶段 7 覆盖对账。三条设计取舍记在这里：
+> ① **解包树实测优先于"门全绿"**——本轮两处实修都属这一族：
+> **（a）`MANIFEST.in` 补三条白名单**（`examples/` / `fixtures/manifest.json` / `.github/`）：
+> 缺它们时 README 的"用法"首条命令、`gen_fixtures.py --check`、`check_ci_workflow.py`
+> 在解包树里全红、`pytest` 12 failed，而仓库树里六道门一片绿——**"门绿"证的是工作树，
+> 不是用户手里的 tarball**；**（b）`verify_gates.py` 的靶子算法**：M6 翻 ✅ 后 L4 / L9
+> 两组变异静默变绿，根因是把 `plan/05` §四"已知未验证项"里**表尾引用 `M6` + 状态格 `⬜`**
+> 当成状态行（"行里含 M6"）——改成**首格必须是 `M<k>`**（与布局门 `STATUS_LINE` 同口径），
+> 并给三条变异补"全部 ✅ 之后"的第二态；**没有删测试、没有放宽断言**；
+> ② **tag 树内不写派生量**——tag 对象 OID / commit / 产物 `sha256` / CI run id 只进
+> `plan/RELEASE-M6.md` §二（tag 之后的追加提交），§一 只写方法与已发生的历史，
+> 否则"写它这个动作"会让值立刻失效；
+> ③ **"发布"不靠新增一道只在发布期跑的门**——发布物是 `sdist` + `wheel`，其可核对性由
+> `twine check`、装态冒烟与本文件的复验命令承担；六道常驻门随包发布，并在解包树里真跑过一遍。
 
 ---
 

@@ -37,6 +37,11 @@ jobs:
   tests:
     name: tests (py${{ matrix.python }} on ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # job 级一次写全：门的输出与断言消息都是四字节中文，windows runner 的默认代码页
+    # 编不了它们（会在"该红的时候"抛 UnicodeEncodeError，把真正的失败原因盖掉）。
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: utf-8
     strategy:
       fail-fast: false
       matrix:

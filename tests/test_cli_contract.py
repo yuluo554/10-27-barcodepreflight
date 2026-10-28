@@ -323,6 +323,20 @@ def test_readme_commands_parse_with_real_parser(tmp_path):
         try:
             parser.parse_args(real)
         except SystemExit as exc:  # argparse 用 SystemExit 报错
+            # `--help` / `--version` 打完成功信息就 exit 0：那是合法命令，不是参数面不一致。
+            if exc.code == 0:
+                continue
             raise AssertionError(
                 "README command does not parse: {!r} (exit {})".format(command, exc.code)
             )
+
+
+def test_readme_names_the_release_assets_of_this_version():
+    """README「下载即用」点名的附件必须是**当前版本**的实名（版本升了忘改这里会红）。"""
+    import bpreflight
+
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    for suffix in ("-py3-none-any.whl", ".tar.gz"):
+        name = "bpreflight-{}{}".format(bpreflight.__version__, suffix)
+        assert name in readme, "README 没点名当前版本的附件: {}".format(name)
+    assert "SHA256SUMS" in readme

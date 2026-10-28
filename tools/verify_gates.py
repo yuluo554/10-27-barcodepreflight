@@ -144,19 +144,30 @@ def m_layout_sections(m):
     m.replace("plan/04-数据计划.md", "## 二、真值纪律（本项目四条）", "## 二、纪律")
 
 
-def _pending_milestones(root):
-    """plan/05 状态表里当前仍是 ⬜ 的里程碑号（按出现序）。"""
+def _milestones_with(root, marker):
+    """plan/05 状态表里带某个状态记号的里程碑号（按出现序）。
+
+    **只认首格就是 `M<k>` 的行**（与布局门的 `STATUS_LINE` 同口径）：`plan/05` §四
+    "已知未验证项"里有一行尾部写着 `M6`、状态格是 `⬜`——按"行里含 `M<k>`"取会把
+    **表尾引用**误当成状态行（M6 收尾实测：L4/L5 因此失去了靶子，变异静默变绿）。
+    """
     found = []
     for line in m_read(root, PLAN05).splitlines():
         stripped = line.lstrip()
-        if not stripped.startswith("|") or "⬜" not in stripped:
+        if not stripped.startswith("|") or marker not in stripped:
             continue
-        for token in stripped.split("|"):
-            token = token.strip().strip("*")
-            if token.startswith("M") and token[1:].isdigit():
-                found.append(int(token[1:]))
-                break
+        cells = [c.strip().strip("*") for c in stripped.strip().strip("|").split("|")]
+        if not cells:
+            continue
+        token = cells[0]
+        if token.startswith("M") and token[1:].isdigit():
+            found.append(int(token[1:]))
     return found
+
+
+def _pending_milestones(root):
+    """plan/05 状态表里当前仍是 ⬜ 的里程碑号（按出现序）。"""
+    return _milestones_with(root, "⬜")
 
 
 def m_read(root, rel):
@@ -165,37 +176,49 @@ def m_read(root, rel):
 
 
 def m_layout_status(m):
-    """两态探测：翻**任意一个还是 ⬜ 的**里程碑（只翻一个副本 → 必须红）。
+    """两态探测：让**一个副本**与另外两个不一致（只翻一个副本 → 必须红）。
 
-    靶子由当前进度算出，不写死里程碑号：写死 M1 会在 M1 ✅ 之后失效
+    靶子由当前进度算出，不写死里程碑号：还有 ⬜ 里程碑时把它只在一个副本里翻 ✅；
+    **全都 ✅ 之后**（发布收尾）改成把最后一个已 ✅ 的里程碑**只在 plan/05 退回 ⬜**。
+    判据始终是"副本之间不一致"，不依赖"项目还没做完"这个瞬态
     （`references/methodology-binding.md` 假门族 ⑭「靶子过期」）。
     """
     pending = _pending_milestones(m.root)
-    assert pending, "plan/05 里已经没有 ⬜ 里程碑了 —— 这条变异失去了靶子"
-    m.set_status([PLAN05], pending[0], "⬜", "✅")
+    if pending:
+        m.set_status([PLAN05], pending[0], "⬜", "✅")
+        return
+    done = _milestones_with(m.root, "✅")
+    assert done, "plan/05 里既没有 ⬜ 也没有 ✅ 里程碑 —— 这条变异失去了靶子"
+    m.set_status([PLAN05], done[-1], "✅", "⬜")
 
 
 def m_layout_handoffs(m):
-    """标一个待办里程碑 ✅，但让它的**交接单不存在** → 必须要求 HANDOFF 而它不在。
+    """标一个里程碑 ✅，但让它的**交接单不存在** → 必须要求 HANDOFF 而它不在。
 
     靶子由构造算出，不写死里程碑号（写死 M1 会在 M1 的交接单落盘后失效，
     `references/methodology-binding.md` 假门族 ⑭「靶子过期」）。
 
-    两态探测（M5 收尾补）：下一棒的交接单通常在上一棒收尾时就**预写**了
+    两态探测（M5 收尾补，M6 收尾再补）：下一棒的交接单通常在上一棒收尾时就**预写**了
     （`plan/HANDOFF-M<k+1>.md`），于是"待办里程碑里没有交接单的那个"可能一个都不剩
-    ——那时先把该里程碑的交接单删掉，变异仍是"标 ✅ 却缺交接单"这一件事。
+    ——那时先把该里程碑的交接单删掉；**全部里程碑都 ✅ 之后**（发布收尾）就没有待办项可翻，
+    改为"已 ✅ 的末尾里程碑 + 删掉它的交接单"——变异仍是"标 ✅ 却缺交接单"这一件事。
     """
     pending = _pending_milestones(m.root)
-    assert pending, "plan/05 里已经没有 ⬜ 里程碑了 —— 这条变异失去了靶子"
-    candidates = [
-        milestone
-        for milestone in pending
-        if not os.path.isfile(m.path("plan/HANDOFF-M{}.md".format(milestone)))
-    ]
-    # `milestone` 由构造保证是**待办**里程碑，所以下面删掉的一定是"预写但未收尾"的交接单。
-    milestone = candidates[0] if candidates else pending[0]
+    if pending:
+        candidates = [
+            milestone
+            for milestone in pending
+            if not os.path.isfile(m.path("plan/HANDOFF-M{}.md".format(milestone)))
+        ]
+        milestone = candidates[0] if candidates else pending[0]
+    else:
+        done = _milestones_with(m.root, "✅")
+        assert done, "plan/05 里既没有 ⬜ 也没有 ✅ 里程碑 —— 这条变异失去了靶子"
+        milestone = done[-1]
+    # `milestone` 由构造保证是"要么待办、要么已收尾"的里程碑；下面删掉的一定是它的交接单。
     prewritten = "plan/HANDOFF-M{}.md".format(milestone)
-    if os.path.isfile(m.path(prewritten)):
+    removed = os.path.isfile(m.path(prewritten))
+    if removed:
         m.delete(prewritten)
 
     changed = 0
@@ -209,7 +232,7 @@ def m_layout_handoffs(m):
                 changed += 1
             lines.append(line)
         m.write(rel, "".join(lines))
-    assert changed > 0, "M{} 的 ⬜ 行一处都没改到".format(milestone)
+    assert removed or changed > 0, "M{} 既没删到交接单、也没翻到状态行".format(milestone)
 
 
 def m_layout_gaps(m):
@@ -246,7 +269,12 @@ def _write_complete_handoff(m, milestone):
 
 
 def m_layout_release_activation(m):
-    """激活即证伪：把 M6 在三处副本里标 ✅，发布留档却不存在 → LAYOUT.RELEASE 必须红。"""
+    """激活即证伪：M6 在三处副本标 ✅，而发布留档不存在 → LAYOUT.RELEASE 必须红。
+
+    **两态探测（M6 收尾补）**：发布留档存在之后，"M6 还是 ⬜"这个前提就没有了。
+    此时改为**删掉留档**（M6 仍 ✅）——判据仍是"✅ 却缺留档"这一件事，
+    不随"项目做到哪一步"而失效（假门族 ⑭「靶子过期」）。
+    """
     for rel in (PLAN00, PLAN05, README):
         text = m.read(rel)
         lines = []
@@ -257,6 +285,8 @@ def m_layout_release_activation(m):
             lines.append(line)
         m.write(rel, "".join(lines))
     _write_complete_handoff(m, 6)
+    if os.path.isfile(m.path("plan/RELEASE-M6.md")):
+        m.delete("plan/RELEASE-M6.md")
 
 
 def m_layout_release_two_columns(m):
@@ -477,7 +507,7 @@ MUTATIONS = [
     ("L2 删 plan/00 装订行", "layout", m_layout_binding, True),
     ("L3 删一份必需小节", "layout", m_layout_sections, True),
     ("L4 只在一个副本翻状态（两态探测）", "layout", m_layout_status, True),
-    ("L5 标 M1 ✅ 但不写 HANDOFF-M1", "layout", m_layout_handoffs, True),
+    ("L5 标一个里程碑 ✅ 但缺它的交接单", "layout", m_layout_handoffs, True),
     ("L6 缺口格提已 ✅ 的 M0", "layout", m_layout_gaps, True),
     ("L7 缺口格点名文件名（阴性对照，必须绿）", "layout", m_layout_gaps_file_ref, False),
     ("L8 台账行挂未完成", "layout", m_layout_ledger, True),
