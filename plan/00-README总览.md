@@ -6,7 +6,7 @@
 - **产出**：仓库 `10-27-barcodepreflight`，CLI 入口 `bpreflight`
 - **形态**：**纯本地 CLI**（零网络、参数驱动；开源解码器只作可选 oracle）
 - **基准日**：2026-10-27｜**代理实际检索窗口 2026-10-27T10:56Z – 11:14Z**
-- **当前状态**：**M3 印刷可读性已完成**（五项检查 + `fix` 必填 + 阈值三态 + `tools/gen_fixtures.py`）；M1 数据先行、M2 符号合法性均已完成；**M4–M6 未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
+- **当前状态**：**M4 报告与门禁已完成**（退出码 12 格逐格 + JSON/MD 端到端同源 + 首屏三段顺序锁死 + 渲染层零判定 AST 守门 + `--with-timestamp`）；M1 数据先行、M2 符号合法性、M3 印刷可读性均已完成；**M5–M6 未开工**。远端未建，所有 CI 类结论均为"本地等价校验（未接远端，CI 待首推验证）"。
 - **定位宣言**："生成器是红海（JsBarcode **5896★** / zint **821★** / python-barcode **658★** / BWIPP **504★**），GS1 AI 解析也已被官方参考实现占住（`gs1/gs1-syntax-engine` **52★**）。**空白在'印出来扫得出吗'这一层**：从生成参数（符号类型、X-dimension、静区、目标 DPI、条/空颜色、条高、放大率）直接判定'这个条码印出来会扫不出'并给可执行修复项——**不依赖图像采集**。"
 
 ---
@@ -15,20 +15,21 @@
 
 | 文档 | 内容 | 状态 |
 |---|---|---|
-| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v5（M3 收尾） |
+| `plan/00-README总览.md` | 本文档：索引 / 决策记录 / 弃选项 / 承诺-证据台账 / 里程碑 | ✅ v6（M4 收尾） |
 | `plan/01-题目文档.md` | 十段式题面：头部 / 介绍 / 五模块任务 / 提交材料 / 评分 / 锚点 / 边界 | ✅ v1 |
-| `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v3（M3 收尾） |
-| `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v3（M3 收尾） |
+| `plan/02-架构与技术选型.md` | 分层 / 模块边界 / 技术选型 / 构建 / 确定性 / 被否方案 | ✅ v4（M4 收尾） |
+| `plan/03-模块详设.md` | 通用契约（Finding/id 词表/fingerprint）/ CLI 契约 / M1–M5 详设 / 测试面 | ✅ v4（M4 收尾） |
 | `plan/04-数据计划.md` | 数据清单 / 真值纪律 / 阈值三态 / 生成与冻结 / 已知缺口 | ✅ v3（M3 收尾） |
-| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v4（M3 收尾） |
-| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D25 | ✅ v4（M3 收尾） |
+| `plan/05-里程碑与发布.md` | 里程碑表 / **状态表** / 逐里程碑 DoD / 已知未验证项 / 风险登记 | ✅ v5（M4 收尾） |
+| `plan/06-交付对标与决策.md` | 评分对标 / 风险登记 / 缺口 / 决策 D14–D25 | ✅ v5（M4 收尾） |
 | `plan/HANDOFF-M1.md` | 第 1 棒交接单（七节） | ✅ v1（已收尾） |
 | `plan/HANDOFF-M2.md` | 第 2 棒交接单（七节） | ✅ v1（已收尾） |
 | `plan/HANDOFF-M3.md` | 第 3 棒交接单（七节） | ✅ v1（已收尾） |
-| `plan/HANDOFF-M4.md` | 第 4 棒交接单（七节） | ✅ v1 |
-| `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8，含 §8.10 符号可行性）** + **内嵌快照身份（§3.1）** | ✅ v4（M3 收尾） |
+| `plan/HANDOFF-M4.md` | 第 4 棒交接单（七节） | ✅ v1（已收尾） |
+| `plan/HANDOFF-M5.md` | 第 5 棒交接单（七节） | ✅ v1 |
+| `data/README.md` | 依据查证三态 + 已占位矩阵 + AI 字典实证 + 校验位自证 + 印刷数值二手标注 + 数据源可获取性 + 合成数据纪律 + **数值口径唯一定义（§8，含 §8.10 符号可行性）** + **内嵌快照身份（§3.1）** | ✅ v5（M4 收尾） |
 | `AGENTS.md` | 方法论锚点：布局门命令、强制布局清单、环境事实 | ✅ v1 |
-| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v4（M3 收尾） |
+| `README.md` | 对外 README：定位、安装、用法、退出码、状态表 | ✅ v5（M4 收尾） |
 | `LICENSE` | Apache-2.0 全文 | ✅ v1 |
 | `.gitignore` | Python 标准模板 + `*.png` 等生成产物不入仓 | ✅ v1 |
 
@@ -94,7 +95,7 @@
 
 | 承诺项 | 素材来源 | 交付物内可达性 | 核验方式 | 状态 |
 |---|---|---|---|---|
-| 五模块 M1–M5 全部交付 | `plan/01` §3 | 源码 + 测试 | 各模块验收例逐条跑 | 🟡 数据层 / 符号层 / 印刷层已交付；报告层待收尾、回读层可选（见 §六里程碑表） |
+| 五模块 M1–M5 全部交付 | `plan/01` §3 | 源码 + 测试 | 各模块验收例逐条跑 | 🟡 数据层 / 符号层 / 印刷层 / 报告层已交付；回读层可选（见 §六里程碑表） |
 | 校验位四向量全 PASS（且只有一个实现） | `data/README.md` §4（官方 `lint_csum.c` + 单测向量） | 内嵌 | `pytest tests/test_checksum.py`；源码里 `gs1_check_digit` 只定义一次（AST + 文本双判据） | ✅ M1 |
 | 校验位手算留痕可复核 | `data/README.md` §4.2 | 文档 | 逐行手算复现 | ✅（文档已落盘） |
 | AI 表来自官方字典（不自造） | `gs1-syntax-dictionary` Apache-2.0 | `src/bpreflight/data/gs1-syntax-dictionary/` + `data/vectors/dict_manifest.json` | 报告头含 `dict_version`；字典文件哈希与清单一致（每次运行复算） | ✅ M1 |
@@ -108,10 +109,10 @@
 | 红条 + 红光判不可读（且与亮度对比分列） | `data/README.md` §8.4 | M3 | 两个 `id` 不同，不合并；`#C86E00`+红光两条并存 | ✅ M3 |
 | 未核阈值降级而非拦死 | 决策 D2 | M3 + M4 | 把 `status` 改 `unverified` 后同测试由 `error` 变 `warn`；`--strict-thresholds` 恢复 `error` | ✅ M3 |
 | `fix` 字段必填且给目标数值 | 决策 D9 | M3 | `tests/test_fix_contract.py`：18 条语料逐条断言 `fix` 含 `to`/`min_delta` + `unit`，且 `fix.to` 可由输入复算 | ✅ M3 |
-| 退出码矩阵全覆盖 | `data/README.md` §8.5 | M4 | `tests/test_exit_codes.py`：`--fail-on` 三档 × 三种问题态 + 三类用法错误，逐格一条 | ⬜ |
-| JSON / MD 同源（按 fingerprint 相等） | `data/README.md` §8.7 | M4 | `test_report.py::test_two_formats_same_findings` | ⬜ |
-| `fingerprint` 稳定、不含时间戳/路径 | `data/README.md` §8.7 | M4 | 两次独立 run 的 fingerprint 集合相等 | ⬜ |
-| 首屏三段字面固定 | `plan/01` §M4 | M4 | 字面断言 | ⬜ |
+| 退出码矩阵全覆盖 | `data/README.md` §8.5 | M4 | `tests/test_exit_codes.py`：9 格**逐格一条**（不 parametrize）+ 三类 `3` + 经 CLI 端到端 9 格 | ✅ M4 |
+| JSON / MD 同源（按 fingerprint 相等） | `data/README.md` §8.7 | M4 | `tests/test_report_render.py::test_end_to_end_json_and_md_share_fingerprints`（同一 spec 两格式：fingerprint 集合相等 + `verdict`/`summary` 一致） | ✅ M4 |
+| `fingerprint` 稳定、不含时间戳/路径 | `data/README.md` §8.7 | M4 | `test_fingerprints_are_stable_across_two_runs`（两次独立 run 相等 + 不同输入必须不同） | ✅ M4 |
+| 首屏三段字面固定 | `plan/01` §M4 | M4 | 字面 + **顺序**（前三行连续且位置固定）+ 常量与 `plan/03` §六逐字一致 | ✅ M4 |
 | M5 oracle 一致性三态（`consistent`/`m3_stricter`/`m3_laxer`） | 决策 D10 | M5 | `m3_laxer` 计为 bug；`out/oracle-report.json` 落盘 | ⬜ |
 | 每模块 1 点样本 oracle 解不出 + M3 判 `raster_alias_high_risk` | `plan/01` §M5 | M5 | 双断言 | ⬜ |
 | 纯本地零网络（AST 扫网络导入） | 隐私红线 | 全 | `tests/test_no_network.py`（AST 扫 `socket`/`urllib`/`requests`/`http`） | ✅ M0 |
@@ -165,7 +166,7 @@
 | **M1 · 数据先行** | 内嵌官方 AI 字典（`gs1-syntax-dictionary` Apache-2.0）+ 四个语义解释器（`req`/`ex`/`yymmd0`/`csum`）+ 校验位向量集 + GTIN/SSCC/日期/字符集/长度校验 | 四个官方向量全 PASS 且**只有一个**校验位函数；`yymmd0`/`req`/`ex` 用例逐条过；`dict_version` 进报告头；`report.header.dict_sha256` 可复算 | ✅ |
 | **M2 · 符号合法性** | `symbol_profiles.json` 数据驱动 + 八符号的结构性可行性 + 容量/字符集/模式切换 + 跨符号等价性 | 跨符号等价性 3 组逐条有原因；`encoding_plan.segments` 切分唯一（`tie_break: longest-first`）；校验位不在 M2 复制第二份；`module_not_implemented:M2` 已收窄 | ✅ |
 | **M3 · 印刷可读性** | 五项检查（静区/放大率/DPI 混叠/条高/颜色）+ `fix` 必填 + 阈值外置带三态 | **`quiet_zone_absent`（零静区）恒 error 且不依赖任何未核数字**；`quiet_zone_insufficient` 按阈值状态升降；python-barcode #41 类场景可复现；放大率边界 4 值逐条测；DPI 四值边界逐条测；阈值项未核降级为 `warn` 且 `--strict-thresholds` 恢复 `error`（**DPI/颜色两项不参与降级**）；`tools/check_thresholds.py` 0 命中 | ✅ |
-| **M4 · 报告与门禁** | JSON + MD 同源 + 退出码矩阵 + `--fail-on` + fingerprint | 退出码矩阵逐格全覆盖；两格式 `findings` 按 fingerprint 完全相等；首屏三段字面断言；零网络 AST 扫 0 命中 | ⬜ |
+| **M4 · 报告与门禁** | JSON + MD 同源 + 退出码矩阵 + `--fail-on` + fingerprint | 退出码矩阵逐格全覆盖；两格式 `findings` 按 fingerprint 完全相等；首屏三段字面断言；零网络 AST 扫 0 命中 | ✅ |
 | **M5 · 仿真回读（可选）** | 最小采样器 + zxing-cpp oracle + `agreement` 三态 | 每模块 1 点样本：oracle 解不出且 M3 判 `raster_alias_high_risk`（一致）；健康样本一致；红条+红光一致；`m3_laxer` 记为 bug；oracle 缺失标 `skipped: oracle_absent` | ⬜ |
 | **M6 · 发布** | 公开发布 | **DoD = `git tag` + GitHub Release（附产物：sdist + wheel + `SHA256SUMS`）+ 发布留档 `plan/RELEASE-M6.md`（tag 前落盘进 tag 树，"tag 时点事实 / tag 后追加事实"两栏）**；发布为 **GitHub 公开仓库**；许可证已落定（D7）；仓库名/包名重名已核对（D13） | ⬜ |
 
@@ -188,6 +189,16 @@
 > ③ **白光不跑波长项**（它的 `channel` 是 `luminance`）——把"红条+白光"与"红条+红光"混在
 > 一条判据里，正是本项最常见的误判。`module_not_implemented` 表就此清空（M5 落地前由
 > `pipeline._module_skips` 这个登记点承担）。
+>
+> **兑现记录（2026-10-28）**：M4 已收尾——退出码 12 格逐格（9 格矩阵**逐格一条测试**，
+> 不 parametrize；三类 `3` 各一条且都从真实入口触发）+ 端到端两格式同源 + 首屏三段顺序锁死 +
+> 渲染层零判定 AST 守门 + `--with-timestamp` 落地。三条设计取舍记在这里：
+> ① **`timestamp` 是 `Report` 的字段而不是渲染期拼的**——两个渲染器都从一个值读，才可能
+> 在"JSON 有、MD 没有"这类漂移上判红；格式固定为 `YYYY-MM-DDTHH:MM:SSZ`（拒绝本地时区名，
+> 那是 D11 要防的确定性泄漏）；② **零判定判据从"文本里有 `sev.rank`"改成 AST 判据 + 阳性对照**
+> ——纯文本判据在注释里写一句就误红，而在 `from bpreflight import severity` 这种等价写法上
+> 又会漏（本棒实测就是先漏后补）；③ **`out/` 落点判据改成"与 stdout 逐字节相等 + 目录列表
+> 前后相等"**——比"文件存在"强：它同时挡住"落盘时二次排版"与"顺手写了别的文件"。
 
 ---
 

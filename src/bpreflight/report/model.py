@@ -184,6 +184,7 @@ class Report(object):
         deterministic=True,
         warnings=None,
         encoding_plan=None,
+        timestamp=None,
     ):
         ordered = sorted(findings, key=lambda f: f.sort_key)
         self.findings = tuple(ordered)
@@ -192,6 +193,10 @@ class Report(object):
         self.skipped = tuple(skipped or ())
         self.strict_thresholds = bool(strict_thresholds)
         self.deterministic = bool(deterministic)
+        #: ISO-8601 UTC (`--with-timestamp`) or None. Never carries a host name or
+        #: a local timezone name (`data/README.md` §8.7): a timestamp that leaks
+        #: "which machine, which zone" is exactly the determinism leak D11 guards.
+        self.timestamp = timestamp
         #: 报告首屏提示（如 `THRESHOLDS: unverified (quiet_zone.modules_min)`）。
         self.warnings = tuple(warnings or ())
         #: M2 的 `encoding_plan`。只在"可编码"时存在；不可编码时由 findings 说原因。
@@ -239,6 +244,9 @@ class Report(object):
             "summary": self.summary,
             "verdict": self.verdict,
         }
+        # Timestamp only when the caller asked for it (default: no clock, K10).
+        if self.timestamp is not None:
+            out["timestamp"] = self.timestamp
         # M2 的 plan 只在"可编码"时出现；不可编码时 findings 说原因（不输出半个计划）。
         if self.encoding_plan is not None:
             out["encoding_plan"] = dict(self.encoding_plan)

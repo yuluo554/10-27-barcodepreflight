@@ -20,6 +20,7 @@
 `skipped` 是"不可判"的合法通道，**不是** verdict 的第四个值。
 """
 
+import datetime
 import sys
 
 from bpreflight import input as input_mod
@@ -243,6 +244,18 @@ def _version():
     return __version__
 
 
+def utc_timestamp(now=None):
+    """ISO-8601 UTC seconds (`2026-10-28T09:15:00Z`), the `--with-timestamp` value.
+
+    Deliberately UTC-only with a literal `Z`: no local timezone name and no host
+    name ever enters the report (`data/README.md` §8.7 — the report must not leak
+    "which machine, which zone"). `now` is injectable so a test can pin the clock
+    instead of mocking a module attribute.
+    """
+    moment = now or datetime.datetime.now(datetime.timezone.utc)
+    return moment.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _dedup(values):
     """保序去重：同一跳过来自多个元素时，首屏只该出现一次。"""
     seen = []
@@ -252,13 +265,15 @@ def _dedup(values):
     return seen
 
 
-def run(payload, input_info, strict_thresholds=False, with_timestamp=False):
+def run(payload, input_info, strict_thresholds=False, with_timestamp=False, now=None):
     """执行一次审计，返回 `Report`。
 
     M1：装载字典（哈希校验）+ 阈值册，判定数据层。字典/向量装载失败一律
     向上抛（调用方映射为 exit 3）——**不产判定**，因为"读不到字典"不是关于条码的结论。
     M2：装载符号 profile 表，判定目标符号的结构可行性并产出 `encoding_plan`。
     M3：判定印刷层五项；缺参只产一条 `input_incomplete`（§8.9 G3），不猜。
+
+    `with_timestamp` 是唯一的读时钟入口（K10）；`now` 仅用于测试注入，正常调用不用传。
     """
     book = thresholds.load_book()
     doc = dictionary_mod.load()
@@ -324,6 +339,7 @@ def run(payload, input_info, strict_thresholds=False, with_timestamp=False):
         deterministic=not with_timestamp,
         warnings=warnings,
         encoding_plan=encoding_plan,
+        timestamp=utc_timestamp(now) if with_timestamp else None,
     )
 
 

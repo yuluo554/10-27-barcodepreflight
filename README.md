@@ -7,10 +7,11 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：M3（印刷可读性）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
+**状态：M4（报告与门禁）**。已落盘 **M1 数据层**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 +
 四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）、**M2 符号层**（八符号 profile 数据表 +
-字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）与 **M3 印刷层**（静区 / 放大率 /
-DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）。**M4（报告与门禁）未开工**；
+字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）、**M3 印刷层**（静区 / 放大率 /
+DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）与 **M4 报告层**（退出码 12 格逐格 +
+JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定）。**M5（仿真回读，可选）与 M6（发布）未开工**；
 报告会在首屏 `SKIPPED:` 一栏里如实登记不可判的项。符号规则与印刷阈值本轮**全部
 `unverified`**（未取到规范原文 / GenSpec 原表），由它们派生的判定默认降级为 `warn`，
 `--strict-thresholds` 恢复 `error`；**DPI 混叠与颜色两项是工程判据，不参与降级**。
@@ -21,7 +22,7 @@ DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）。**M
 | M1 | ✅ | 数据层：内嵌官方字典 + 校验位 + 语义解释器（本地等价校验，未接远端）；另补第六道门 `check_ci_workflow.py`（CI 工作流 YAML 可解析性） |
 | M2 | ✅ | 符号层：八符号 profile（全部 `unverified`）+ 三段判定 + `encoding_plan`（本地等价校验，未接远端） |
 | M3 | ✅ | 印刷层：五项检查 + 边界值逐条 + `fix` 必填 + 未核降级 + `gen_fixtures.py`（本地等价校验，未接远端） |
-| M4 | ⬜ | 报告与 CI 门禁 |
+| M4 | ✅ | 报告与门禁：退出码 12 格逐格 + 端到端 JSON/MD 同源 + 首屏三段顺序锁死 + 渲染层零判定 + `--with-timestamp`（本地等价校验，未接远端） |
 | M5 | ⬜ | 栅格化仿真回读（可选） |
 | M6 | ⬜ | 发布 |
 
@@ -81,6 +82,11 @@ TOP FIX: recompute_check_digit -> 09501101530003 digits
 
 **`--fail-on` 默认 `none`**：只报告不拦。要接 CI 请显式写 `--fail-on=error`——
 否则你的流水线会一直是绿的。
+
+**报告默认不读时钟**：同一输入两次导出逐字节一致。需要时间信息时用 `--with-timestamp`，
+报告头标 `deterministic: false` 并给出 `timestamp`，格式固定
+`YYYY-MM-DDTHH:MM:SSZ`（ISO-8601 / **UTC**，句尾字面 `Z`）——**不含**本机时区名或主机名，
+否则同一份 spec 换个时区就会产出不同报告。
 
 ### 数据层判什么（M1）
 
@@ -150,6 +156,20 @@ TOP FIX: recompute_check_digit -> 09501101530003 digits
 
 口径只在 `data/README.md` §8.5 定义一次，本表是摘要。
 
+矩阵是 `--fail-on` 三档 × 最严重级别三态 = **9 格**，外加 `3` 的三类触发
+（用法错误 / 输入不可解析 / 内嵌字典缺失）。**12 格逐格有测试**，且同一矩阵再经真实 CLI
+端到端跑一遍——所以"某个 spec 会返回几"不是靠文档推断，是断言过的。
+
+### 报告层判什么（M4）
+
+| 判据 | 说明 |
+| --- | --- |
+| 两格式同源 | 同一 spec 走 `--json` 与 `--md`，`findings` 按 `fingerprint` **集合相等**，`verdict` / `summary` 一致——某个渲染器少报一条即红 |
+| 首屏三段 | `VERDICT:` / `FINDINGS:` / `TOP FIX:` **连续占前三行**；常量与 `plan/03` §六 逐字一致（改常量不改文档也红） |
+| 渲染层零判定 | AST 两条：不得 import 判定模块；不得重算严重级别（import 面 + `.rank`/`.worst`/`.verdict_for` 面，且判据自带阳性对照） |
+| `--with-timestamp` | 默认无该字段；开了才有，格式 `YYYY-MM-DDTHH:MM:SSZ`，不含时区名/主机名 |
+| `out/` 落点 | 写盘字节与同一渲染器的 stdout **逐字节相等**；跑前跑后目录只多那两个文件 |
+
 ### 输入格式
 
 **首期只收 `.json`**，扩展名不符即 exit 3（**不做内容嗅探**）：
@@ -204,8 +224,10 @@ py -3.12 tools/check_desensitized.py     # 脱敏门
 py -3.12 tools/check_thresholds.py       # 阈值零硬编码门
 py -3.12 tools/check_python_floor.py     # Python 下限门（AST）
 py -3.12 tools/check_ci_workflow.py      # CI 工作流门（YAML 可解析子集）
+py -3.12 tools/gen_fixtures.py --check   # fixture 位级自检（第七道常规检查）
 py -3.12 tools/verify_gates.py           # 门自检（注入缺陷 → 必须逐条变红）
 py -3.12 -m pytest -q                    # 全量测试
+py -3.8  -m pytest -q                    # 3.8 通道（requires-python 的下限要有实跑）
 ```
 
 ## 文档索引
@@ -215,8 +237,8 @@ py -3.12 -m pytest -q                    # 全量测试
 | `plan/00-README总览.md` | 总览 / 决策记录 / 弃选项 / 承诺-证据台账 |
 | `plan/01-题目文档.md` | 题面：痛点、已占位矩阵、五模块任务、评分、边界 |
 | `plan/02` – `plan/06` | 架构 / 模块详设 / 数据计划 / 里程碑 / 交付对标 |
-| `plan/HANDOFF-M2.md` | 上一棒交接单（符号层的当前事实与不动点） |
-| `plan/HANDOFF-M3.md` | 下一棒交接单（印刷层） |
+| `plan/HANDOFF-M4.md` | 上一棒交接单（报告与门禁的当前事实与不动点） |
+| `plan/HANDOFF-M5.md` | 下一棒交接单（仿真回读） |
 | `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** + 内嵌字典身份（§3.1） |
 | `AGENTS.md` | 方法论锚点与门命令 |
 

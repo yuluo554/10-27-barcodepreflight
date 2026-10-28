@@ -431,7 +431,7 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | `2` | 跨门槛且最严重级别为 `error` |
 | `3` | 用法错误 / 输入不可解析 / 内嵌字典缺失（**优先于 0/1/2，不参与判定计数**） |
 
-**矩阵（M4 必须逐格测试）**：`--fail-on ∈ {none, warn, error}` × `worst ∈ {info, warn, error}` = **9 格**；再加 `3` 的三类触发（用法错误 / 输入不可解析 / 字典缺失）。
+**矩阵（M4 已逐格测试）**：`--fail-on ∈ {none, warn, error}` × `worst ∈ {info, warn, error}` = **9 格**；再加 `3` 的三类触发（用法错误 / 输入不可解析 / 字典缺失）。判据在 `tests/test_exit_codes.py`：9 格**逐格一条**（不 parametrize 压成 3 条），三类 `3` 各一条且都从真实入口触发，同一矩阵再经 CLI 端到端跑一遍。
 
 > **设计取舍**：默认 `--fail-on=none`（只报告不拦），因为默认拦死会让人第一次用就被劝退；要接 CI 显式写 `--fail-on=error`。这一条写进 README 首屏，避免"为什么我的流水线一直是绿的"。
 
@@ -466,7 +466,10 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
   findings 的最严重级别派生（§8.8），把 M3 单独装一段会让"条码整体能不能扫"有两个答案
   （`plan/01` 的 `scanability` 是这一段的口径名，不是第二个字段）。
 - `fingerprint = sha256(f"{id}\x1f{module}\x1f{canonical_target}").hexdigest()[:16]`，**不含**时间戳/路径/机器名，用于跨 run diff。
-- 报告**默认无时间戳**（确定性优先）；`--with-timestamp` 时显式标注"非确定性导出"。
+- 报告**默认无时间戳**（确定性优先）；`--with-timestamp` 时显式标注"非确定性导出"：
+  报告新增 `timestamp` 字段，格式固定 **`YYYY-MM-DDTHH:MM:SSZ`（ISO-8601 / UTC，句尾字面 `Z`）**。
+  **不得**出现本地时区名、时区缩写或主机名——那正是"同一输入在不同机器/不同时区产出不同报告"的入口（D11）。
+  JSON 与 MD 都读同一个 `Report.timestamp`，因此两格式不可能一个有、一个没有。
 - 报告**不含**任何网络请求结果、不含用户主目录绝对路径（写相对路径或脱敏路径）。
 
 ### 8.8 判定结论词表（一处定义）
@@ -552,7 +555,7 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | 7 | zxing-cpp 本机可用性 | ⬜ | 本机未验证；M5 缺失时标 `skipped: oracle_absent` |
 | 8 | StackOverflow 正文页 | ⚠️ | 本轮取到检索摘要，未逐页直取正文 |
 | 9 | en.wikipedia.org / Google / DuckDuckGo | ⬜ | 000 超时 |
-| 10 | 本机 Python 运行时 | ⚠️ | `python` / `python3` 指向 Windows Store 占位（执行即 exit 49）；可用解释器为 `py -3` = **3.8.8**。M1 开工前须确认目标版本与 CI 矩阵，**不得**假定本机已具备 3.10+ |
+| 10 | 本机 Python 运行时 | ✅ **已确认** | `python` / `python3` 指向 Windows Store 占位（执行即 exit 49）；可用解释器 `py -3.8` = 3.8.8、`py -3.12` = 3.12.10。M3 起双通道实跑；M4 双通道 **269 passed**（同数） |
 
 ---
 

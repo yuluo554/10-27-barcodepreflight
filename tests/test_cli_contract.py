@@ -150,6 +150,73 @@ def test_oracle_requires_out_dir(tmp_path, capsys, monkeypatch):
     assert "does not exist" in capsys.readouterr().err
 
 
+def _tree(root):
+    """相对路径 → 字节数；用于"跑前跑后目录列表相等"的判据。"""
+    entries = {}
+    for path in sorted(root.rglob("*")):
+        rel = str(path.relative_to(root)).replace("\\", "/")
+        entries[rel] = path.stat().st_size if path.is_file() else None
+    return entries
+
+
+def test_out_json_file_content_equals_stdout_of_same_format(tmp_path, capsys, monkeypatch):
+    """写进 `out/report.json` 的字节必须与同一 `render_json` 的返回值完全一致。
+
+    `report --format json` 打的就是 `render_json` 的返回值（同一渲染器、同一 spec），
+    因此它与 `check --json` 落盘的字节必须逐字节相等（D20：落盘不是二次排版）。
+    """
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "spec.json"
+    spec.write_text('{"schema": "bpreflight/spec/1"}', encoding="utf-8")
+    (tmp_path / "out").mkdir()
+
+    # stdout 路径：`report --format json`。
+    assert main(["report", "--input", str(spec), "--format", "json"]) == 0
+    stdout = capsys.readouterr().out
+
+    # 落盘路径：`check --json`（目录已存在）。
+    assert main(["check", "--input", str(spec), "--json"]) == 0
+    capsys.readouterr()
+    written = (tmp_path / "out" / "report.json").read_text(encoding="utf-8")
+    assert written == stdout
+    assert written.startswith("{")
+
+
+def test_out_md_file_content_equals_renderer_output(tmp_path, capsys, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "spec.json"
+    spec.write_text(
+        '{"schema": "bpreflight/spec/1", "symbol": "ean13"}', encoding="utf-8"
+    )
+    (tmp_path / "out").mkdir()
+    main(["report", "--input", str(spec), "--format", "md"])
+    stdout = capsys.readouterr().out
+    main(["check", "--input", str(spec), "--md"])
+    capsys.readouterr()
+    written = (tmp_path / "out" / "report.md").read_text(encoding="utf-8")
+    assert written == stdout
+    assert written.startswith("VERDICT: ")
+
+
+def test_out_writes_nothing_else(tmp_path, capsys, monkeypatch):
+    """`check --json --md` 只能新增那两个报告文件，不得写入任何其它文件（零副作用）。"""
+    monkeypatch.chdir(tmp_path)
+    spec = tmp_path / "spec.json"
+    spec.write_text(
+        '{"schema": "bpreflight/spec/1", "symbol": "ean13"}', encoding="utf-8"
+    )
+    (tmp_path / "out").mkdir()
+    before = _tree(tmp_path)
+    main(["check", "--input", str(spec), "--json", "--md"])
+    capsys.readouterr()
+    after = _tree(tmp_path)
+
+    added = sorted(set(after) - set(before))
+    assert added == ["out/report.json", "out/report.md"], added
+    removed = sorted(set(before) - set(after))
+    assert removed == [], removed
+
+
 def test_check_prints_markdown_by_default(tmp_path, capsys):
     spec = tmp_path / "spec.json"
     spec.write_text(

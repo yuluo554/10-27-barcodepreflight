@@ -63,6 +63,10 @@ def render_md(report):
         lines.append(note)
     if report.skipped:
         lines.append("SKIPPED: " + ", ".join(report.skipped))
+    # `--with-timestamp` only: the head already says `deterministic: false` in
+    # the JSON; the human report repeats the exact moment it was taken (K10).
+    if report.timestamp is not None:
+        lines.append("TIMESTAMP: {}".format(report.timestamp))
 
     lines.append("")
     lines.append("## Findings")
