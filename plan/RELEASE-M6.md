@@ -238,8 +238,9 @@
 
 ## 二、tag 后追加事实
 
-> **本节在 tag 树内是占位骨架**：列名 + 取证命令在位，值一律写"见 tag 后追加提交"。
-> 字面值在 tag 之后落（tag 树不变 → 附件字节不变 → 值不会失效）。
+> **本节在 tag 树里是占位骨架**（列名 + 取证命令在位，值写"见 tag 后追加提交"）。
+> 下面的字面值都在 **tag 之后**的追加提交里落：tag 树不变 → 附件字节不变 → 值不会失效。
+> 本文件在 tag 树内的版本仍保留本节标题与空表结构（布局门要读它）。
 
 ### 2.1 tag 与提交
 
@@ -247,31 +248,43 @@
 | --- | --- | --- |
 | tag 名 | `v0.1.0` | `git tag -l` |
 | tag 类型 | annotated | `git cat-file -t v0.1.0` |
-| tag 对象 OID | 见 tag 后追加提交 | `git rev-parse v0.1.0` |
-| tag 指向的 commit | 见 tag 后追加提交 | `git rev-parse v0.1.0^{commit}` |
-| 本文件在 tag 树里 | 必须在 | `git cat-file -e v0.1.0:plan/RELEASE-M6.md` |
+| tag 对象 OID | `0d603db3f034bef843dcc4c3fdbec1994ff7daa8` | `git rev-parse v0.1.0` |
+| tag 指向的 commit | `7deb5aa358b8025a48bb29c7ba3ccb5c3e07eb2a` | `git rev-parse v0.1.0^{commit}` |
+| tagger | `yuluo554 <282769740+yuluo554@users.noreply.github.com>` | `git for-each-ref --format='%(taggername) %(taggeremail)' refs/tags/v0.1.0` |
+| 本文件在 tag 树里 | 在（`git cat-file -e` 通过） | `git cat-file -e v0.1.0:plan/RELEASE-M6.md` |
 
 ### 2.2 CI 首跑与 push 台账
 
-| 项 | 值 |
+| 事实 | 值 |
 | --- | --- |
-| 首推形态 | 见 tag 后追加提交（private 首跑 → 绿后切 public） |
-| run 台账 | 见 tag 后追加提交（每行 `<sha> · event=<branch\|tag> · run=<id> · conclusion=<…>`） |
-| 对账规则 | 每个 push 事件对应一条 run；同 sha 的 branch run 与 tag run 是**合法两条**，两条都要绿 |
+| 首推形态 | **private 建仓 → 推 `main` + `v0.1.0` → CI 双绿 → 切 public → 建 Release**（没有公开过红的 run） |
+| `push main`（`7deb5aa`） | run `40622681587`，结论 **success**；4 个 job 全绿：`gates`、`tests (py3.8 ubuntu)`、`tests (py3.12 ubuntu)`、`tests (py3.12 windows)` |
+| `push tag v0.1.0`（同 `7deb5aa`） | run `40622697610`，结论 **success**；同样 4 个 job 全绿 |
+| 对账规则 | **每个 push 事件对应一条 run**；同 sha 的 branch run 与 tag run 是**合法两条**，两条都要绿。此后 `plan/` 文档追加提交各产生一条 run，均绿；**本表不写"共 N 轮"**（会随每次回填自己变） |
+| 传输通道 | `git` over HTTPS 到 `github.com:443` 本机**不可达**（`Connection was reset` / 20s 超时，`curl` 返回 000）；`api.github.com` 与 `gh` 正常、SSH（`git@github.com`）认证成功 ⇒ **remote 改用 SSH**。这条只影响推送通道，不影响上面的 run 事实 |
 
 ### 2.3 产物 `sha256` 与真下载复核
 
 | 产物 | `sha256` | 复核 |
 | --- | --- | --- |
-| `bpreflight-0.1.0-py3-none-any.whl` | 见 tag 后追加提交 | 真下载 → `sha256sum -c SHA256SUMS` → 与本机构建件 `cmp` |
-| `bpreflight-0.1.0.tar.gz` | 见 tag 后追加提交 | 同上 |
+| `bpreflight-0.1.0-py3-none-any.whl` | `b284e717bb79f2d43d40cf0e3fc0661e5fb281f5bb2cb047e86cd5c65772fd6a` | 真下载 → `sha256sum -c SHA256SUMS` **OK** → 与本机构建件 `cmp` **逐字节一致** |
+| `bpreflight-0.1.0.tar.gz` | `2199200b721da33d85c59f549cbc8a99b207621d524c85600b0f0f16a6824ba4` | 同上 |
 | `SHA256SUMS` | （清单本身不入校验清单） | 真下载后与 Release 正文的 digest 行逐条比 |
+
+Release：`https://github.com/yuluo554/10-27-barcodepreflight/releases/tag/v0.1.0`，
+`isDraft: false`、`isPrerelease: false`，三件附件齐（`SHA256SUMS` 190 B / wheel 134528 B / sdist 326552 B）。
+
+**附件与 tag 树逐字节同源**（归一化后比对，`references/release.md`「共有文件」条）：
+sdist vs `git archive v0.1.0` 解包树 **共有 100 个文件、0 处字节不一致**（sdist 独有 `PKG-INFO` /
+`setup.cfg`；树独有 `.gitattributes` / `.gitignore`）；wheel 补 `src/` 前缀后**共有 47 个、0 处不一致**，
+wheel 无"树里没有"的文件。
 
 ### 2.4 tag 之后的改动面
 
 | 项 | 值 / 命令 |
 | --- | --- |
-| 声明 | tag 之后只有**追加类**提交（留档回填 / 状态对账 / 复核记录），**无功能代码改动** |
-| 核对 | `git -c core.quotepath=false diff --name-only v0.1.0..HEAD` |
-| 交付面零差异 | `git -c core.quotepath=false diff --name-only v0.1.0..HEAD -- src/ MANIFEST.in pyproject.toml .github/` 必须为空 |
-| 不重打 tag 的理由 | 见本节声明：缺陷若落在文档面，追加提交即可；本轮未出现"已发布物有缺陷"的情形，故无补丁版 |
+| 声明 | tag 之后只有**追加类**提交，且都在 `plan/`（留档回填 / 状态对账 / 复核记录）；**无功能代码、无 `README.md`、无 `src/`** 改动 |
+| 核对 | `git -c core.quotepath=false diff --name-only v0.1.0..HEAD` → 只应出现 `plan/*` |
+| 交付面零差异 | `git -c core.quotepath=false diff --name-only v0.1.0..HEAD -- src/ MANIFEST.in pyproject.toml .github/ README.md` **必须为空** |
+| 附件字节不变 | 三件附件在 tag 时点已定稿；`plan/` 的这次回填**不进**已发布的 `sdist`/`wheel`（包内 `plan/` 是 tag 树快照）——§二 的事实按设计只能活在仓库里 |
+| 不重打 tag 的理由 | 首推即双绿、附件真下载复核通过、无缺陷落在已发布物上；此后只做 `plan/` 追加 —— 重打只会改变发布件身份，没有收益 |
