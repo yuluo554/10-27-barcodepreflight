@@ -623,7 +623,7 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
 | 7 | zxing-cpp / zbar 本机可用性 | ✅ **M5 已实测探测** | `zxing-cpp` / `ZXingReader` / `zbarimg` 在本机 `shutil.which` 全为空 ⇒ `oracle` 走 `skipped: oracle_absent`。**真引擎的解码路径本轮未验证**（命令模板未被观测过）；一致性三态用可注入的解码器替身验过（替身读的是真实落盘的 PNG 像素） |
 | 8 | StackOverflow 正文页 | ⚠️ | 本轮取到检索摘要，未逐页直取正文 |
 | 9 | en.wikipedia.org / Google / DuckDuckGo | ⬜ | 000 超时 |
-| 10 | 本机 Python 运行时 | ✅ **已确认** | `python` / `python3` 指向 Windows Store 占位（执行即 exit 49）；可用解释器 `py -3.8` = 3.8.8、`py -3.12` = 3.12.10。M3 起双通道实跑；M4 双通道 **269 passed**（同数）、M5 双通道 **299 passed**（同数） |
+| 10 | 本机 Python 运行时 | ✅ **已确认** | `python` / `python3` 指向 Windows Store 占位（执行即 exit 49）；可用解释器 `py -3.8` = 3.8.8、`py -3.12` = 3.12.10。M3 起双通道实跑；历史真值：M4 时点 269 条、M5 时点 299 条。**M6.1 起 `requires-python` 抬到 `>=3.12`**（3.8 已 2024-10-07 EOL，且 SPDX license 需 `setuptools>=77` 而它要求 py>=3.9），当前实测 `py -3.12 -m pytest -q` → **306 passed**，由 `tests/test_reported_counts.py` 常驻守 |
 | 11 | M5 采样器的模块图案表（`src/bpreflight/data/vectors/sampler_patterns.json`） | ⚠️ **全部 `unverified`** | 零售符号（EAN-13）的模块图案属公开常识，但本轮同样没取到规范原表（`iso.org` / `gs1.org` 403），且**真引擎未复核**。表内只放 `L` 组 10 个 7 位码，`R` = `complement(L)`、`G` = `reverse(complement(L))` 由装载期派生，parity 表逐首位；结构不变量（L 奇校验、G 偶校验、守卫、95 模块）由 `tests/test_oracle.py` 常驻断言。**不得**把它写成规范要求 |
 
 ---

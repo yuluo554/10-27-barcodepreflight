@@ -6,7 +6,7 @@
 - **产出**：仓库 `10-27-barcodepreflight`，CLI 入口 `bpreflight`
 - **形态**：**纯本地 CLI**（零网络、参数驱动；开源解码器只作可选 oracle）
 - **基准日**：2026-10-27｜**代理实际检索窗口 2026-10-27T10:56Z – 11:14Z**
-- **当前状态**：**M6 发布已完成**（`v0.1.0`：annotated tag + GitHub Release 附 `sdist` / `wheel` / `SHA256SUMS` + `plan/RELEASE-M6.md` 两栏与阶段 7 覆盖对账）；M1 数据先行、M2 符号合法性、M3 印刷可读性、M4 报告与门禁、M5 仿真回读均已完成。**CI 待首推后回填 run id**，此前所有 CI 类结论均为"本地等价校验（未接远端）"。
+- **当前状态**：**M6 发布已完成**（`v0.1.0`：annotated tag + GitHub Release 附 `sdist` / `wheel` / `SHA256SUMS` + `plan/RELEASE-M6.md` 两栏与阶段 7 覆盖对账），**M6.1 补丁版已就绪待发**（`v0.1.1`：自述数字收口 + 门扫描面收编 + 元数据去弃用倒计时，判定逻辑一行未改；见 `plan/RELEASE-M7.md`）；M1 数据先行、M2 符号合法性、M3 印刷可读性、M4 报告与门禁、M5 仿真回读均已完成。**CI 待首推后回填 run id**，此前所有 CI 类结论均为"本地等价校验（未接远端）"。
 - **定位宣言**："生成器是红海（JsBarcode **5896★** / zint **821★** / python-barcode **658★** / BWIPP **504★**），GS1 AI 解析也已被官方参考实现占住（`gs1/gs1-syntax-engine` **52★**）。**空白在'印出来扫得出吗'这一层**：从生成参数（符号类型、X-dimension、静区、目标 DPI、条/空颜色、条高、放大率）直接判定'这个条码印出来会扫不出'并给可执行修复项——**不依赖图像采集**。"
 
 ---
@@ -34,6 +34,7 @@
 | `LICENSE` | Apache-2.0 全文 | ✅ v1 |
 | `.gitignore` | Python 标准模板 + `*.png` 等生成产物不入仓 | ✅ v1 |
 | `plan/RELEASE-M6.md` | 发布留档：tag 前事实（D13 重名核对 / 干净环境验证 / 脱敏四步 / 构建产物 / 门与测试）+ tag 后追加栏 + **阶段 7 覆盖对账（逐条三态）** | ✅ v1 |
+| `plan/RELEASE-M7.md` | M6.1 发布留档（`v0.1.1`）：本版性质（只改文档数字 / 门扫描面 / 元数据，判定逻辑一行未改）+ 改前基线 + B0–B4 逐批动作 + 门与测试实测 + tag 后追加栏 | ✅ v1 |
 
 > `src/bpreflight/gs1/`（M1）、`src/bpreflight/data/gs1-syntax-dictionary/`（M1）、
 > `src/bpreflight/symbols/`（M2）、`src/bpreflight/print/`（M3）、`tools/gen_fixtures.py` + `fixtures/manifest.json`（M3）、

@@ -25,8 +25,8 @@ M5 已完成并验证（**本地等价校验，未接远端，CI 待首推验证
 | 落点固定 | `tests/test_cli_contract.py::test_oracle_writes_nothing_else`（目录前后只多 `out/oracle-report.{json,md}`，且**不**写 `report.*`）+ `test_oracle_exit_code_comes_from_the_m3_report` |
 | 零第三方 / 零网络 | `tests/test_no_network.py`（自动覆盖新目录）：**0 命中**；`oracle/` 只用 `shutil` / `subprocess` / `tempfile` / `zlib` / `struct` |
 | Python 下限 | `tools/check_python_floor.py` 全绿（`oracle/` 与 `tests/test_oracle.py` 无 `match` / `X \| Y` / `list[int]` 注解） |
-| 全量测试 | `py -3.12 -m pytest -q` → **299 passed**；`py -3.8 -m pytest -q` → **299 passed**（同数） |
-| 六道门 + 门自检 | 布局/脱敏/阈值/下限/CI 工作流全绿；`tools/gen_fixtures.py --check` → 31 件位级一致；`tools/verify_gates.py` → **32 组变异：符合预期 32 / 不符合 0** |
+| 全量测试 | `py -3.12 -m pytest -q` → **306 passed**（当前值，由 `tests/test_reported_counts.py` 常驻守）；本棒当时为 299 条（M5 时点） |
+| 六道门 + 门自检 | 布局/脱敏/阈值/下限/CI 工作流全绿；`tools/gen_fixtures.py --check` → 31 件位级一致；`tools/verify_gates.py` → **35 组变异：符合预期 35 / 不符合 0（阴性对照 9 组）** |
 
 **M5 的 DoD 在 `plan/05` §三（全部打勾）**。
 
@@ -91,8 +91,10 @@ M5 已完成并验证（**本地等价校验，未接远端，CI 待首推验证
 17. **提交门会在每次提交时报一条 medium「跨文件污点」**（`cli.py` 的
     `argv → args.input → load_spec → open()`）。这是按 `plan/00` D22 登记的预期判定，
     发布留档（`plan/RELEASE-M6.md` §覆盖对账）按 D20 先例如实登记，别去"消掉"它。
-18. **Python 3.8 通道本棒已双跑**：`py -3.8 -m pytest -q` = **299 passed**（与 3.12 同数）。
-    发布棒若动 `src/` 或 `tests/`，必须再双跑（`tools/check_python_floor.py` 常驻守）。
+18. **Python 下限 M6.1 起为 `>=3.12`**（原 3.8 已于 2024-10-07 EOL，且 SPDX license 需
+    `setuptools>=77` 而它要求 py>=3.9）。当前实跑：`py -3.12 -m pytest -q` = **306 passed**；
+    `py -3.8` 不再是契约通道。动手后必须再跑（`tools/check_python_floor.py` 常驻守，
+    判据随 `MIN_VERSION` 而动）。
 
 ## 三、下一棒待办（M6）
 
@@ -152,7 +154,7 @@ M5 已完成并验证（**本地等价校验，未接远端，CI 待首推验证
   （或 `py -3.8`）；输出中文加 `-X utf8`。
 - **`py -3.12 -m bpreflight …` 需要 `PYTHONPATH=src`**（或先 `pip install -e .`）：
   `pyproject.toml` 的 `pythonpath` 只对 pytest 生效。
-- `py -3.8` = 3.8.8，`py -3.12` = 3.12.10。本棒实测双通道均 **299 passed**。
+- `py -3.12` = 3.12.10（本机）。M6.1 起下限为 `>=3.12`；当前实测 **306 passed**。
 - **本机没有任何候选解码引擎**（`zxing-cpp` / `ZXingReader` / `zbarimg` 的 `shutil.which` 全为
   `None`，M5 实测）。因此 `oracle` 的真实运行**只会**给出 `skipped: oracle_absent`；
   想看 agreement 三态请用 `tests/test_oracle.py` 的可注入替身或自备引擎。
@@ -184,9 +186,8 @@ py -3.12 tools/check_thresholds.py        # 阈值零硬编码门（oracle/ 也�
 py -3.12 tools/check_python_floor.py      # Python 下限门
 py -3.12 tools/check_ci_workflow.py       # CI 工作流门
 py -3.12 tools/gen_fixtures.py --check    # fixture 位级自检（第七道常规检查）
-py -3.12 tools/verify_gates.py            # 门自检（32 组变异）
-py -3.12 -m pytest -q                     # 全量测试（299 passed）
-py -3.8  -m pytest -q                     # 3.8 通道（299 passed）
+py -3.12 tools/verify_gates.py            # 门自检（35 组变异）
+py -3.12 -m pytest -q                     # 全量测试（306 passed）
 PYTHONPATH=src py -3.12 -X utf8 -m bpreflight check --input examples/spec-ean13.json
 mkdir -p out && PYTHONPATH=src py -3.12 -X utf8 -m bpreflight oracle --input examples/spec-ean13.json
 grep -rc "def gs1_check_digit" src/       # 必须 == 1

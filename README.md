@@ -7,7 +7,7 @@
 纯本地 CLI：**零网络、零遥测、零第三方运行时依赖**。输入是参数文件，不是图片；输出是
 JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 
-**状态：v0.1.0 · 五层已交付**（M1 数据层 / M2 符号层 / M3 印刷层 / M4 报告层 / M5 回读层）。
+**状态：v0.1.1 · 五层已交付**（M1 数据层 / M2 符号层 / M3 印刷层 / M4 报告层 / M5 回读层）。
 已落盘 **M1**（内嵌官方 GS1 AI 字典 + **唯一**校验位实现 + 四个语义解释器 `req` / `ex` / `yymmd0` / `csum`）、
 **M2**（八符号 profile 数据表 + 字符集/长度/模式三段判定 + `encoding_plan` 切分唯一）、
 **M3**（静区 / 放大率 / DPI 混叠 / 条高 / 颜色 五项检查 + `fix` 必填 + 阈值三态）、
@@ -46,22 +46,26 @@ JSON（机器消费）+ Markdown（人读）+ 退出码（接 CI 门禁）。
 py -3.12 -m pip install -e ".[dev]"
 ```
 
-不装也能跑（`pytest` 的 `pythonpath` 直指 `src/`）：
+不装也能跑（`pytest` 的 `pythonpath` 只对 pytest 生效，直接跑 CLI 需要 `PYTHONPATH=src`）：
 
 ```bash
-py -3.12 -m bpreflight --help
+PYTHONPATH=src py -3.12 -m bpreflight --help
 ```
 
+> `pyproject.toml` 里的 `pythonpath = ["src"]` **只对 `pytest` 生效**，不会让
+> `py -3.12 -m bpreflight` 在仓库根找到包。要么加 `PYTHONPATH=src`（Git Bash /
+> Linux / macOS / PowerShell 都认这个写法），要么 `pip install -e ".[dev]"`。
+
 > Windows 上 `python` / `python3` 可能是应用商店占位符（执行即 exit 49）。**一律用 `py -3.12`**；
-> 中文输出加 `-X utf8`。`requires-python = ">=3.8"`，由 `tools/check_python_floor.py` 用 AST 守。
+> 中文输出加 `-X utf8`。`requires-python = ">=3.12"`，由 `tools/check_python_floor.py` 用 AST 守。
 
 ## 下载即用（Release 附件）
 
-Release 页附三件：`bpreflight-0.1.0-py3-none-any.whl`（**推荐**：字典 / 向量 / 图案表随包安装）、
-`bpreflight-0.1.0.tar.gz`（含 `plan/` 与六道门，解包即可跑 `pytest`）、`SHA256SUMS`。
+Release 页附三件：`bpreflight-0.1.1-py3-none-any.whl`（**推荐**：字典 / 向量 / 图案表随包安装）、
+`bpreflight-0.1.1.tar.gz`（含 `plan/` 与六道门，解包即可跑 `pytest`）、`SHA256SUMS`。
 
 ```bash
-py -3.12 -m pip install bpreflight-0.1.0-py3-none-any.whl
+py -3.12 -m pip install bpreflight-0.1.1-py3-none-any.whl
 bpreflight --version
 ```
 
@@ -69,7 +73,7 @@ bpreflight --version
 
 ```bash
 sha256sum -c SHA256SUMS
-certutil -hashfile bpreflight-0.1.0-py3-none-any.whl SHA256
+certutil -hashfile bpreflight-0.1.1-py3-none-any.whl SHA256
 ```
 
 两个摘要也逐行列在 **Release 正文**里（与附件同页）。**包内文档不重复写摘要**——
@@ -78,6 +82,17 @@ certutil -hashfile bpreflight-0.1.0-py3-none-any.whl SHA256
 
 ## 用法
 
+装好 wheel 后**不需要**仓库里的任何文件：下面第一段 spec 粘进 `spec.json` 就能跑
+（数据层只用 `identifier`，实测 `VERDICT: pass`）：
+
+```bash
+printf '{"schema":"bpreflight/spec/1","mode":"params","identifier":"4006381333931"}\n' > spec.json
+bpreflight check --input spec.json
+```
+
+要**印刷层**判定（静区 / 放大率 / DPI / 条高 / 颜色）就把字段写全——照仓库里的
+`examples/spec-ean13.json` 写（该文件随 sdist 的 `examples/` 提供）：
+
 ```bash
 bpreflight check --input examples/spec-ean13.json
 mkdir -p out && bpreflight check --input examples/spec-ean13.json --json --md
@@ -85,6 +100,10 @@ bpreflight report --input examples/spec-ean13.json --format json
 bpreflight check --input examples/spec-ean13.json --fail-on=error
 mkdir -p out && bpreflight oracle --input examples/spec-ean13.json
 ```
+
+> `examples/` 随 **sdist**、不随 wheel（wheel 只装 `src/bpreflight/**` 与包数据）。
+> 只装了 wheel 的用户请用上面第一段的 `spec.json`，或按 `examples/spec-ean13.json`
+> 的字段形态自建输入。
 
 **输出落点**：`--json` / `--md` 是**开关**，不是路径 —— 它们把报告写到固定的
 `out/report.json` 与 `out/report.md`（`oracle` 写 `out/oracle-report.{json,md}`）。
@@ -291,6 +310,7 @@ py -3.8  -m pytest -q                    # 3.8 通道（requires-python 的下�
 | `plan/HANDOFF-M5.md` | 第 5 棒交接单（回读层：纯函数采样器 / 图案表 / `agreement` 三态） |
 | `plan/HANDOFF-M6.md` | 第 6 棒交接单（发布棒，已收尾） |
 | `plan/RELEASE-M6.md` | 发布留档：tag 前事实 + tag 后追加栏 + 阶段 7 覆盖对账 |
+| `plan/RELEASE-M7.md` | M6.1 发布留档（`v0.1.1`）：只改文档数字 / 门扫描面 / 元数据，判定逻辑一行未改 |
 | `data/README.md` | 依据查证三态 + **数值口径唯一定义（§8）** + 内嵌字典身份（§3.1） |
 | `AGENTS.md` | 方法论锚点与门命令 |
 
