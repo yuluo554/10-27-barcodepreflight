@@ -1,23 +1,24 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "bpreflight"
 description = "Barcode pre-press scanability auditor: judge whether a barcode can be scanned from generation parameters alone (no image capture)."
 readme = "README.md"
-requires-python = ">=3.8"
-license = { file = "LICENSE" }
+# 3.8 已于 2024-10-07 EOL；且 SPDX license（PEP 639）需 setuptools>=77，
+# 而 setuptools 76.1.0 起 requires_python >=3.9 —— 两者与 >=3.8 不可兼得。
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [{ name = "yuluo554" }]
 keywords = ["barcode", "gs1", "preflight", "print", "quiet-zone", "x-dimension"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
   "Intended Audience :: Manufacturing",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.12",
   "Topic :: Printing",
   "Topic :: Software Development :: Quality Assurance",

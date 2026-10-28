@@ -100,6 +100,13 @@ release/
 .tmp_*/
 tmp/
 
+# 二次迭代交接目录（诊断报告 / 迭代路线 / 提示词 / 执行记录）与临时草稿区：
+# 属本地产物、不入库。与 tools/check_desensitized.py 的 SKIP_DIRS **成对维护**——
+# 只 ignore 不 SKIP 会让脱敏门去扫它们（做一次诊断就打红门），
+# 只 SKIP 不 ignore 会把交接物推上远端。
+update/
+.scratch/
+
 # 本机工具状态（agent/skill 运行时产物，不是仓库内容）
 .mimosa/
 .claude/

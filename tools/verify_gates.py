@@ -369,6 +369,19 @@ def m_desens_placeholder(m):
     m.write_new("plan/NOTES-tmp.md", "占位 C:\\Users\\<user>\\repo 与 <local-proxy>\n")
 
 
+def m_desens_handoff_dir(m):
+    """阴性对照：`update/`（二次迭代交接目录）里写盘符路径必须**放行**。
+
+    这条与 D1 是一对：D1 证明"真入库的目录里写盘符会红"，本组证明
+    "被收编的本地交接目录里写同样的东西不会红"。两条一起才说明收编是**定向的**
+    （缩到零判定面的假收编会让 D1 也变绿，而 D1 仍红）。
+
+    D5 之前 `update/` 不在 `SKIP_DIRS`：做一次正经诊断就把脱敏门打红（126 份扫到、
+    命中 1 处）。收编后它进 `SKIP_DIRS`（与 `.gitignore` 成对）。
+    """
+    m.write_new("update/NOTES-tmp.md", "临时路径 D:\\work\\repo\\src\n")
+
+
 def m_threshold_bare(m):
     m.append(
         "src/bpreflight/severity.py",
@@ -410,11 +423,32 @@ def m_floor_builtin_generic(m):
     )
 
 
+def m_floor_tools_builtin_generic(m):
+    """`tools/` 里写内建泛型注解 → 必须红（D2：扫描面曾漏掉整个 `tools/`）。
+
+    实测背景：`SCAN_ROOTS` 只有 `src/bpreflight` 与 `tests` 时，往 `tools/` 放一个
+    `list[int]` 注解该门仍 `PASS 扫描 52 份` exit 0，而低版本解释器跑该文件是
+    `TypeError: 'type' object is not subscriptable` —— 那就是"没有门的门"。
+    """
+    m.write_new(
+        "tools/_probe39.py",
+        "def _sizes(items: list[int]) -> dict[str, int]:\n    return {}\n",
+    )
+
+
 def m_floor_none(m):
     """阴性对照：合法的 3.8 语法不得误红。"""
     m.append(
         "src/bpreflight/paths.py",
         "\n\ndef _fine(a, b=2):\n    items = [x for x in (a, b)]\n    return {k: v for k, v in enumerate(items)}\n",
+    )
+
+
+def m_floor_tools_none(m):
+    """阴性对照：`tools/` 里写普通合法代码不得误红（新判定面不许过度报警）。"""
+    m.write_new(
+        "tools/_probe_ok.py",
+        "def _fine(a, b=2):\n    return {k: v for k, v in enumerate((a, b))}\n",
     )
 
 
@@ -450,10 +484,16 @@ def m_ci_two_gates_one_step(m):
     )
 
 
-def m_ci_matrix_drop_py38(m):
-    """矩阵里删掉 3.8 → 必须红（requires-python 的下限要有实跑）。"""
-    m.replace(CI_WORKFLOW, '            python: "3.8"', '            python: "3.11"')
-    m.replace(CI_WORKFLOW, '- os: ubuntu-latest\n            python: "3.11"', '- os: ubuntu-latest')
+def m_ci_matrix_drop_floor(m):
+    """矩阵里把所有下限版本的腿都删掉 → 必须红（`requires-python` 的下限要有实跑）。
+
+    M6.1 下限从 3.8 抬到 3.12 后，靶子跟着变：判据从"必须含 3.8 与 3.12"改为
+    "必须含 `pyproject.toml` 里的下限"。因此变异改成把**两条** 3.12 腿都换掉——
+    只换一条（ubuntu）仍会被 windows 那条满足，变异就退化成 no-op。
+    """
+    text = m.read(CI_WORKFLOW)
+    assert text.count('python: "3.12"') >= 1, "矩阵里没有 3.12 腿 —— 变异靶子失效"
+    m.write(CI_WORKFLOW, text.replace('python: "3.12"', 'python: "3.11"'))
 
 
 def m_ci_negative_control(m):
@@ -521,16 +561,19 @@ MUTATIONS = [
     ("D3 本机用户名", "desens", m_desens_username, True),
     ("D4 回环代理端口", "desens", m_desens_loopback, True),
     ("D5 占位符形态（阴性对照，必须绿）", "desens", m_desens_placeholder, False),
+    ("D6 本地交接目录 update/ 不在扫描面（阴性对照，必须绿）", "desens", m_desens_handoff_dir, False),
     ("T1 src 里写裸阈值", "thresholds", m_threshold_bare, True),
     ("T2 结构性常量（阴性对照，必须绿）", "thresholds", m_threshold_struct_ok, False),
     ("T3 M3 的 print/ 里写裸阈值", "thresholds", m_threshold_bare_in_m3, True),
     ("P1 3.10 的 match", "floor", m_floor_match, True),
     ("P2 3.9 的内建泛型注解", "floor", m_floor_builtin_generic, True),
-    ("P3 合法 3.8 语法（阴性对照，必须绿）", "floor", m_floor_none, False),
+    ("P3 合法语法（阴性对照，必须绿）", "floor", m_floor_none, False),
+    ("P4 tools/ 里写内建泛型注解", "floor", m_floor_tools_builtin_generic, True),
+    ("P5 tools/ 里写普通合法代码（阴性对照，必须绿）", "floor", m_floor_tools_none, False),
     ("C1 未加引号的 step 名里带 ':'（M0 真实踩过）", "ci", m_ci_unquoted_colon, True),
     ("C2 删掉一条门的独立 step", "ci", m_ci_missing_gate_step, True),
     ("C3 两个门塞进同一个 step", "ci", m_ci_two_gates_one_step, True),
-    ("C4 矩阵里删掉 3.8", "ci", m_ci_matrix_drop_py38, True),
+    ("C4 矩阵里删掉下限（3.12 腿全换掉）", "ci", m_ci_matrix_drop_floor, True),
     ("C5 合法形状（阴性对照，必须绿）", "ci", m_ci_negative_control, False),
     ("F1 清单期望漂移", "fixtures", m_fixtures_drift, True),
     ("F2 阈值册身份过期", "fixtures", m_fixtures_thresholds_identity, True),

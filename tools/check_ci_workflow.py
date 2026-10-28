@@ -20,8 +20,12 @@ GitHub 侧炸掉。这正是"门只在开发机存在等于没有"的反面：**
 判据（每加一条都要在 `tools/verify_gates.py` 里配一组变异）：
 
   CI.PARSE      逐行形状必须属于可识别子集；纯量里出现未加引号的 `": "` 即红
-  CI.GATES      五个门脚本各自**独占一个 step**，且没有任何 step 同时跑两个门（决策 D18）
-  CI.MATRIX     `pytest` 矩阵必须含 3.8 与 3.12（`requires-python` 的下限要有实跑）
+  CI.GATES      六个门脚本各自**独占一个 step**，且没有任何 step 同时跑两个门（决策 D18）
+  CI.MATRIX     `pytest` 矩阵必须含 `requires-python` 下限的实跑腿（下限由
+                `pyproject.toml` 算出，不写死）。下限从 3.8 抬到 3.12 后，本判据同步
+                改为只认 3.12 —— 这是"下限变了、判据跟着变"的合法口径调整，不是放宽：
+                矩阵仍必须含一个实跑的 3.12 腿，且 `pyproject.toml` 的 `requires-python`
+                与它必须一致（见 `read_floor`）。
 
 退出码：0 全绿 / 1 有 FAIL。
 """
@@ -48,8 +52,32 @@ GATE_SCRIPTS = (
     "verify_gates.py",
 )
 
-#: 矩阵里必须实跑的版本（下限 3.8 + 开发用的 3.12）。
-REQUIRED_PYTHONS = ("3.8", "3.12")
+#: 矩阵里必须实跑的版本 —— **从 `pyproject.toml` 的 `requires-python` 算出**，不写死。
+#: 写死会让"下限改了、判据没改"变成假话（M6.1 抬 3.8→3.12 就是这么来的）。
+#: 口径：`requires-python = ">=X.Y"` 里的 X.Y 必须有一条矩阵腿实跑。
+_FLOOR_RE = re.compile(r'^\s*requires-python\s*=\s*"[><=~! ]*(\d+\.\d+)', re.M)
+
+
+def read_floor():
+    """读 `pyproject.toml` 的 requires-python 下限；读不到返回 None。"""
+    path = os.path.join(ROOT, "pyproject.toml")
+    if not os.path.isfile(path):
+        return None
+    with io.open(path, "r", encoding="utf-8") as handle:
+        match = _FLOOR_RE.search(handle.read())
+    return match.group(1) if match else None
+
+
+_MATRIX_PY_RE = re.compile(r'^\s*python\s*:\s*"?(\d+\.\d+)"?\s*$', re.M)
+
+
+def _matrix_pythons(lines):
+    """矩阵里实际出现的 python 版本（按出现序去重）。"""
+    seen = []
+    for value in _MATRIX_PY_RE.findall("\n".join(lines)):
+        if value not in seen:
+            seen.append(value)
+    return seen
 
 _SCRIPT_RE = re.compile(r"tools/([\w.-]+\.py)")
 _MAPPING_RE = re.compile(r"^([\w\"'.-]+):(\s|$)(.*)$")
@@ -227,15 +255,26 @@ def check_gates_as_separate_steps(path, steps):
     return problems
 
 
-def check_matrix(path, lines):
-    """`requires-python >= 3.8`：矩阵里必须有 3.8 与 3.12 的实跑。"""
-    text = "\n".join(lines)
-    missing = [version for version in REQUIRED_PYTHONS if version not in text]
-    if missing:
+def check_matrix(path, lines, floor):
+    """`requires-python` 的下限必须在矩阵里有一条实跑腿。
+
+    `floor` 由 `pyproject.toml` 算出（不写死）：下限抬到 3.12 之后，
+    矩阵里"必须有 3.8"就不再成立；但"必须有下限本身的实跑"永远成立。
+    """
+    if floor is None:
+        return [
+            Problem("CI.MATRIX", "{}: 读不到 pyproject.toml 的 requires-python，判据无法成立".format(path))
+        ]
+    present = _matrix_pythons(lines)
+    if not present:
+        return [Problem("CI.MATRIX", "{}: pytest 矩阵里解析到 0 个 python 版本 —— 判据空跑".format(path))]
+    if floor not in present:
         return [
             Problem(
                 "CI.MATRIX",
-                "{}: pytest 矩阵缺 {}".format(path, ", ".join(missing)),
+                "{}: pytest 矩阵缺下限 {} 的实跑腿（现有: {}）".format(
+                    path, floor, ", ".join(present)
+                ),
             )
         ]
     return []
@@ -255,6 +294,8 @@ def main():
 
     scanned_lines = 0
     steps_seen = 0
+    floor = read_floor()
+    matrix_versions = []
     for path in workflows:
         with io.open(path, "r", encoding="utf-8") as handle:
             lines = handle.read().splitlines()
@@ -263,7 +304,10 @@ def main():
         problems.extend(parse_problems)
         steps_seen += len(steps)
         problems.extend(check_gates_as_separate_steps(path, steps))
-        problems.extend(check_matrix(path, lines))
+        problems.extend(check_matrix(path, lines, floor))
+        for version in _matrix_pythons(lines):
+            if version not in matrix_versions:
+                matrix_versions.append(version)
 
     # 非空跑自证：门清单里的每条判据都要真的咬过东西
     for name in GATE_SCRIPTS:
@@ -291,12 +335,13 @@ def main():
 
     out.write(
         "PASS  扫描 {} 份工作流 / {} 行 / {} 个 step；{} 个门各自独立 step；"
-        "矩阵含 {}；0 处命中\n".format(
+        "矩阵含 {}（requires-python 下限 {}）；0 处命中\n".format(
             len(workflows),
             scanned_lines,
             steps_seen,
             len(GATE_SCRIPTS),
-            "+".join(REQUIRED_PYTHONS),
+            "+".join(matrix_versions),
+            floor,
         )
     )
     out.write("=" * 60 + "\n")
