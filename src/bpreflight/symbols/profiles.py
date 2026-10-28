@@ -12,11 +12,10 @@
 （fail-closed：不支持的口径不允许静默降级成"随便切"）。
 """
 
-import hashlib
 import io
 import json
 
-from bpreflight import paths
+from bpreflight import canonical, paths
 
 PROFILE_FILE = "symbol_profiles.json"
 
@@ -146,7 +145,7 @@ def load():
     except ValueError as exc:
         raise ProfileError("bundled vector {!r} is not valid JSON: {}".format(PROFILE_FILE, exc))
     _validate(doc)
-    book = ProfileBook(doc, hashlib.sha256(raw).hexdigest())
+    book = ProfileBook(doc, canonical.sha256_of_bytes(raw))
     _CACHE[PROFILE_FILE] = book
     return book
 

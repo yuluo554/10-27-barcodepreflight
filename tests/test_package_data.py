@@ -10,6 +10,7 @@ import os
 
 import pytest
 
+from bpreflight import canonical
 from bpreflight import paths
 from bpreflight import thresholds
 from bpreflight.gs1 import dictionary, vectors
@@ -134,3 +135,39 @@ def test_missing_dictionary_is_refused(tmp_path):
     manifest["path"] = "gs1-syntax-dictionary/does-not-exist.txt"
     with pytest.raises(dictionary.DictionaryError):
         dictionary.load(manifest)
+
+
+# --------------------------------------------------------------------------- #
+# M6 行尾归一（`data/README.md` §8.11）
+# --------------------------------------------------------------------------- #
+
+
+def test_canonical_digest_ignores_line_endings(tmp_path):
+    """同一份内容的 LF 与 CRLF 副本必须算出同一个摘要（换平台克隆不能换摘要）。"""
+    lf = tmp_path / "lf.json"
+    crlf = tmp_path / "crlf.json"
+    lf.write_bytes(b'{\n  "a": 1\n}\n')
+    crlf.write_bytes(b'{\r\n  "a": 1\r\n}\r\n')
+    assert canonical.sha256_of_bytes(lf.read_bytes()) == canonical.sha256_of_bytes(
+        crlf.read_bytes()
+    )
+    assert canonical.read_normalized(str(lf))[1] == canonical.read_normalized(str(crlf))[1]
+
+
+def test_crlf_copy_of_the_dictionary_still_verifies():
+    """内嵌字典转成 CRLF 后，摘要仍须等于 `dict_manifest.json` 里的值。
+
+    M6 实测形态：`git archive`（受 `core.autocrlf` 影响）导出 CRLF → 打包 → 装好后
+    `dictionary.load()` 抛 `DictionaryError`。这条测试把那个场景钉在单测里。
+    """
+    manifest = dictionary.load_manifest()
+    with open(dictionary.dictionary_path(manifest), "rb") as handle:
+        raw = handle.read()
+    crlf = raw.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    assert b"\r\n" in crlf, "字典正文里没有换行？这条测试的构造前提失效了"
+    assert canonical.sha256_of_bytes(crlf) == manifest["sha256"]
+
+
+def test_canonical_digest_still_changes_when_content_changes():
+    """归一是"忽略行尾"，不是"什么变化都放行"（阳性对照）。"""
+    assert canonical.sha256_of_bytes(b"a\nb\n") != canonical.sha256_of_bytes(b"a\nc\n")

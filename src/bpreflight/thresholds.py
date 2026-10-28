@@ -15,7 +15,7 @@ import io
 import json
 import os
 
-from bpreflight import paths
+from bpreflight import canonical, paths
 
 #: 参与装载的向量文件（固定序，输出可复现）。
 #: `color_cases.json`（M3）与两个阈值文件同一装载点：照明建模表既驱动判定
@@ -246,7 +246,9 @@ def load_book():
             )
         digest.update(name.encode("utf-8"))
         digest.update(b"\x00")
-        digest.update(raw)
+        # 行尾归一后再进摘要（`canonical.py`）：CRLF 检出与 LF 检出必须算出同一个
+        # `vectors_sha256`，否则同一份 spec 会因为"在哪台机器上装的"产出不同报告（M6 实测）。
+        digest.update(canonical.normalize_newlines(raw))
         try:
             docs[name] = json.loads(raw.decode("utf-8"))
         except ValueError as exc:

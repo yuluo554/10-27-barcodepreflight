@@ -215,18 +215,23 @@
 >
 > **兑现记录（2026-10-28）**：M6 已收尾——D13 重名核对（PyPI 404 / GitHub 0，不改名）→
 > 干净环境两通道验证（源码树装 / sdist 装，README 逐条真敲，退出码 0/2/3 留档）→
-> 脱敏四步（12 提交作者与提交者单一 noreply，122 份文本 0 命中，产物扫描只命中
+> 脱敏四步（12 提交作者与提交者单一 noreply，128 份文本 0 命中，产物扫描只命中
 > `fixtures/manifest.json`）→ 交付面定稿后构建 `sdist` + `wheel` + `SHA256SUMS`
 > （`twine check` 两件 PASSED）→ annotated tag `v0.1.0` + GitHub Release →
 > `plan/RELEASE-M6.md` 两栏 + 阶段 7 覆盖对账。三条设计取舍记在这里：
-> ① **解包树实测优先于"门全绿"**——本轮两处实修都属这一族：
+> ① **"本体可证伪"优先于"门全绿"**——本轮三处实修都属这一族：
 > **（a）`MANIFEST.in` 补三条白名单**（`examples/` / `fixtures/manifest.json` / `.github/`）：
 > 缺它们时 README 的"用法"首条命令、`gen_fixtures.py --check`、`check_ci_workflow.py`
 > 在解包树里全红、`pytest` 12 failed，而仓库树里六道门一片绿——**"门绿"证的是工作树，
-> 不是用户手里的 tarball**；**（b）`verify_gates.py` 的靶子算法**：M6 翻 ✅ 后 L4 / L9
-> 两组变异静默变绿，根因是把 `plan/05` §四"已知未验证项"里**表尾引用 `M6` + 状态格 `⬜`**
-> 当成状态行（"行里含 M6"）——改成**首格必须是 `M<k>`**（与布局门 `STATUS_LINE` 同口径），
-> 并给三条变异补"全部 ✅ 之后"的第二态；**没有删测试、没有放宽断言**；
+> 不是用户手里的 tarball**；**（b）摘要面的行尾归一**（发布阻塞级）：`core.autocrlf=true` 下
+> `git archive` 会把 blob 的 LF 转 CRLF，而字典/阈值册摘要算的是原始字节 ⇒ 从导出树打的
+> wheel **装好即 `DictionaryError` / exit 3**（清单 `1ea02f4e…` vs 文件 `84359ef1…`）。
+> 处置 = `src/bpreflight/canonical.py`（`\r\n`→`\n` 后算摘要，`data/README.md` §8.11）
+> + `.gitattributes` 的 `* text=auto eol=lf` + 三条单测；**（c）`verify_gates.py` 的靶子算法**：
+> M6 翻 ✅ 后 L4 / L9 两组变异静默变绿，根因是把 `plan/05` §四"已知未验证项"里
+> **表尾引用 `M6` + 状态格 `⬜`** 当成状态行（"行里含 M6"）——改成**首格必须是 `M<k>`**
+> （与布局门 `STATUS_LINE` 同口径），并给三条变异补"全部 ✅ 之后"的第二态；
+> **没有删测试、没有放宽断言**；
 > ② **tag 树内不写派生量**——tag 对象 OID / commit / 产物 `sha256` / CI run id 只进
 > `plan/RELEASE-M6.md` §二（tag 之后的追加提交），§一 只写方法与已发生的历史，
 > 否则"写它这个动作"会让值立刻失效；

@@ -23,13 +23,12 @@ Structural notes drawn from the table's own header:
   `ex=a,b` invalid to pair with any listed AI; an AI is not exclusive of itself
 """
 
-import hashlib
 import io
 import json
 import os
 import re
 
-from bpreflight import paths
+from bpreflight import canonical, paths
 
 #: Attribute keys the M1 interpreters consume. `dlpkey` is recognised so it is
 #: not mistaken for a component, but it belongs to Digital Link (out of scope).
@@ -441,7 +440,9 @@ def load(manifest=None):
                 manifest["path"], exc.strerror or exc
             )
         )
-    digest = hashlib.sha256(raw).hexdigest()
+    # 摘要面 = **行尾归一后**的字节（`canonical.py`）：CRLF 检出与 LF 检出必须同一摘要，
+    # 否则"换个平台克隆"就会 exit 3（M6 实测：git archive 按 autocrlf 导出 CRLF）。
+    digest = canonical.sha256_of_bytes(raw)
     if digest != manifest["sha256"]:
         raise DictionaryError(
             "bundled dictionary digest mismatch: manifest says {}, file is {}".format(
@@ -449,7 +450,7 @@ def load(manifest=None):
             )
         )
     try:
-        text = raw.decode("utf-8")
+        text = canonical.normalize_newlines(raw).decode("utf-8")
     except UnicodeDecodeError as exc:
         raise DictionaryError("bundled dictionary is not valid UTF-8: {}".format(exc))
     entries, stats = parse_dictionary_text(text)

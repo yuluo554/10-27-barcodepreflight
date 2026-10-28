@@ -62,6 +62,20 @@
 > 于是解包树里 README 的"用法"一节首条命令、`gen_fixtures.py --check`、
 > `check_ci_workflow.py` 三条全红，`pytest` 也 **12 failed**。
 > 处置 = `MANIFEST.in` 补三条白名单（见 §1.4），**不是**在文档里加"先怎么怎么样"的免责句。
+>
+> **第二处（更贵，发布阻塞级）**：按纪律"在 `git archive` 导出的干净目录里构建"之后，
+> 装出来的 wheel **跑不起来**——`dictionary.load()` 抛 `DictionaryError`：
+> 清单 `1ea02f4e…`，文件 `84359ef1…`；`thresholds.load_book()` 的 `vectors_sha256`
+> 也从 `17ead62a…` 变成 `04d515df…`，`gen_fixtures --check` 与解包树 `pytest` 大面积红
+> （72 failed / 48 errors）。根因：本机 `core.autocrlf=true`（Git for Windows 默认），
+> **`git archive` 会按它把 blob 的 LF 转成 CRLF**（实测：blob 4983 字节 / 0 个 CRLF，
+> 导出树 5103 字节 / 120 个 CRLF；字典正文同理 344 处）。而字典与阈值册的摘要算的是
+> **原始字节** ⇒ 同一份数据两个摘要，运行期判据又是"不符即 exit 3"。
+> 处置 = **摘要面改为"归一后字节"**（新增 `src/bpreflight/canonical.py`：
+> `\r\n`→`\n` 后算 sha256；`data/README.md` §8.11 定义）+ **`.gitattributes` 钉
+> `* text=auto eol=lf`**；三条单测钉住"CRLF 副本仍验得过""LF/CRLF 摘要相等""改内容摘要必须变"。
+> 同一根因下，Windows 上 `git clone`（autocrlf=true ⇒ CRLF 检出）后直接跑会命中**同一条
+> exit 3**——本轮实测的是 archive 那条链，clone 那条是同一条摘要链的必然结果。
 
 ### 1.3 脱敏四步 + 产物扫描
 
@@ -83,7 +97,9 @@
    `.github/*.yml`）、`.github/workflows/ci.yml`（tests job 加 job 级 `PYTHONUTF8` / `PYTHONIOENCODING`）
 2. 六道门 + `gen_fixtures.py --check` + `verify_gates.py` + `pytest` 双通道（见 §1.6）
 3. `rm -rf dist build src/*.egg-info` → 在 **`git archive HEAD` 导出的干净目录**里 `python -m build`
-   （不在工作目录 build：`MANIFEST.in` 的 glob 会把未入库的临时文件打进包）
+   （不在工作目录 build：`MANIFEST.in` 的 glob 会把未入库的临时文件打进包）。
+   **导出前必须确认导出树里的字节与 blob 一致**：`.gitattributes` 的 `* text=auto eol=lf`
+   就是为此而加（`core.autocrlf=true` 时 `git archive` 默认会把 LF 转 CRLF，见 §1.2 第二处）
 4. `twine check` 两件 → 双装态验证（源码树装 / sdist 装）
 5. `SHA256SUMS`（两件产物各一行）→ commit → tag → Release
 
@@ -109,22 +125,26 @@
 | --- | --- |
 | `tools/check_sprint_layout.py` | 全绿；9 条判据全 PASS（含 `LAYOUT.RELEASE` 的两栏 + 覆盖对账 + 三态行 ≥3） |
 | `tools/check_desensitized.py` | 122 份 / 0 命中 |
-| `tools/check_thresholds.py` | 36 份 `.py` / 192 个数值常量 / 0 处未登记字面量 |
-| `tools/check_python_floor.py` | 51 份 `.py` / 0 处越过 3.8 的语法 |
+| `tools/check_thresholds.py` | 37 份 `.py` / 192 个数值常量 / 0 处未登记字面量 |
+| `tools/check_python_floor.py` | 52 份 `.py` / 0 处越过 3.8 的语法 |
 | `tools/check_ci_workflow.py` | 1 份工作流 / 98 行 / 20 个 step；7 个门各自独立 step；矩阵含 3.8 + 3.12 |
 | `tools/gen_fixtures.py --check` | 31 件 fixture 位级一致，期望无漂移 |
 | `tools/verify_gates.py` | **32 组变异：符合预期 32 / 不符合 0**（阴性对照 7 组） |
-| `py -3.12 -m pytest -q` | **300 passed** |
-| `py -3.8 -m pytest -q` | **300 passed**（与 3.12 同数） |
+| `py -3.12 -m pytest -q` | **303 passed** |
+| `py -3.8 -m pytest -q` | **303 passed**（与 3.12 同数） |
 
 > 这些数字是 **tag 前那棵树**上的实测；tag 之后再跑会因"追加提交只动文档/清单"而不变。
 >
-> **本轮第二处实修（门自身）**：M6 翻 ✅ 之后 `verify_gates.py` 有 **2 组变异静默变绿**
-> （L4 状态不一致 / L9 缺留档）——根因是靶子算法把 `plan/05` §四"已知未验证项"里
-> **表尾引用 `M6` + 状态格 `⬜`** 误当成状态行（"行里含 M6"），于是"待办里程碑"永远非空、
-> 变异打到无关行上。处置 = 靶子算法改成**只认首格就是 `M<k>` 的行**（与布局门 `STATUS_LINE`
-> 同口径），并给 L4 / L5 / L9 补"全部 ✅ 之后"的第二态（把一个已 ✅ 的里程碑**只在单副本
-> 退回 ⬜** / 删掉已收尾里程碑的交接单 / 删掉发布留档）。**没有删测试、没有放宽断言**。
+> **本轮的三处实修**（顺序即发现顺序）：
+> ① **`MANIFEST.in` 补三条白名单**——解包树缺 `examples/` / `fixtures/manifest.json` /
+> `.github/`，README 的"用法"首条命令与两道门在解包树里红；
+> ② **摘要面行尾归一**（`src/bpreflight/canonical.py` + `.gitattributes`）——见 §1.2 第二处，
+> 发布阻塞级：从 `git archive` 树构建的 wheel 装好后 `dictionary.load()` 直接失败；
+> ③ **`verify_gates.py` 的靶子算法**——M6 翻 ✅ 之后 L4 / L9 两组变异静默变绿，根因是靶子把
+> `plan/05` §四"已知未验证项"里**表尾引用 `M6` + 状态格 `⬜`** 误当成状态行（"行里含 M6"）——
+> 改成**首格必须是 `M<k>`**（与布局门 `STATUS_LINE` 同口径），并给 L4 / L5 / L9 补
+> "全部 ✅ 之后"的第二态（把已 ✅ 的里程碑只在单副本退回 ⬜ / 删掉已收尾里程碑的交接单 /
+> 删掉发布留档）。**没有删测试、没有放宽断言**。
 
 ### 1.7 覆盖对账（阶段 7 出口门逐条）
 
@@ -135,8 +155,9 @@
 
 | 出口门 | 状态 | 证据 / 不适用理由 |
 | --- | --- | --- |
-| 发布物本体已验（真下载 + 中立目录） | 实现 | §1.2 两通道：源码树装（build 依赖真下载）+ sdist 装；README 逐条真敲，退出码 0/0/0/0/0/2/2/0/0/3 |
-| 发布物能证伪里程碑自述 | 实现 | 解包树实测**证伪了两处自述**（examples / fixtures 清单 / CI 工作流缺件）→ `MANIFEST.in` 补白名单后复验全绿 |
+| 发布物本体已验（真下载 + 中立目录） | 实现 | §1.2 两通道：源码树装（build 依赖真下载）+ sdist/wheel 装；README 逐条真敲，退出码 0/0/0/0/0/2/2/0/0/3。**装态冒烟抓到过一次"装不起来"**（CRLF 摘要 → `DictionaryError`），修完复验 |
+| 发布物能证伪里程碑自述 | 实现 | 解包树 + 装态冒烟**证伪了三处自述**：① examples / fixtures 清单 / CI 工作流缺件；② 摘要面随检出形态漂移（archive 导出 CRLF → 装好即 exit 3）；③ 两组门变异在 M6 翻 ✅ 后静默变绿。三处都已修并复验 |
+| 随包数据的摘要与检出/打包形态无关（`data/README.md` §8.11） | 实现 | 摘要面 = `\r\n`→`\n` 后的字节（`canonical.py`）；三条单测（LF/CRLF 摘要相等 + CRLF 字典副本仍验得过 + 改内容摘要必变）；`.gitattributes` 钉 `* text=auto eol=lf` |
 | 入仓工具在无 `.git` 树里也要能跑 | 实现 | 解包树（无 `.git`）跑六道门 + `gen_fixtures.py --check` + `pytest` 全绿；`tools/` 无一读 git 元数据（布局门注释即声明） |
 | 发布包实测 = README 每条命令在解包树里真敲（含前置条件） | 实现 | §1.2 + §1.4；"前置条件"= `out/` 必须已存在（缺则 exit 3 且零副作用），README 已写明 |
 | 干净环境要连"真实输入"一起验 | 实现 | 三条真实 spec：干净样本（warn）、零静区（error→2）、红条+红光（error→2）。**不是**只喂"测试夹具" |

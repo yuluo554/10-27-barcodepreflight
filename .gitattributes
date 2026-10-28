@@ -1,0 +1,8 @@
+# 文本文件统一 LF。
+#
+# 为什么（`data/README.md` §8.11 + `src/bpreflight/canonical.py`）：内嵌字典与阈值册的
+# 身份摘要按"把 CRLF 归一成 LF 之后的字节"计算。Windows 上 `core.autocrlf=true`
+# （Git for Windows 的默认值）会让 **checkout 与 `git archive` 导出**都变成 CRLF，
+# 于是同一份 blob 在两种平台上字节不同。代码侧已做行尾归一见 `canonical.py`；
+# 这里再把工作树/导出一侧钉成 LF，让"克隆 / 打包 / 安装"三条路上的字节也一致。
+* text=auto eol=lf

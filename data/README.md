@@ -585,6 +585,29 @@ exit = 0   其余（含 covered 未触发，或 fail-on=none 的任意 worst）
   （error 基线）；`mode_switch_required`（info）。`target = symbol:<symbol>:<scope>`。
   `checksum_mismatch` **不产出**：校验位由 M1 的 `invalid_csum` 判，M2 不重复第二份。
 
+### 8.11 文件身份摘要（行尾归一）——M6 定稿
+
+**定义**：凡是"对随包数据文件算摘要"的地方（`dict_sha256` / `vectors_sha256` /
+`symbol_profiles_sha256`，以及 `fixtures/manifest.json` 的 `thresholds_sha256`），
+摘要面都是 **把 `\r\n` 归一成 `\n` 之后的字节流**（`src/bpreflight/canonical.py`），
+**不**是磁盘上的原始字节。
+
+**为什么**（M6 实测，发布阻塞级）：同一个 blob 在 Windows（Git for Windows 默认
+`core.autocrlf=true`）检出为 CRLF，在 Linux/macOS 上为 LF；`git archive` 也按
+`core.autocrlf` 转换。原始字节做摘要 ⇒ 同一份内嵌字典有两个摘要，而运行期校验是
+"摘要不符即 exit 3"：实测从 `git archive` 导出的树打出的 wheel，装好后
+`dictionary.load()` 直接抛 `DictionaryError`（清单 `1ea02f4e…` vs CRLF 文件 `84359ef1…`）。
+
+**范围与边界**：
+
+- 只归一 `\r\n` → `\n`；**不做** Unicode 归一、不重排 JSON、不修剪空白 —— 摘要仍对内容敏感
+  （换版本、改一个数值都会变）。
+- **用户输入文件**（`input.input_info` 的 `sha256`）**不归一**：那是"用户给的那份文件"的
+  身份，不是随包数据的快照身份。
+- 配套 `.gitattributes` 的 `* text=auto eol=lf`：代码侧归一保证正确性，仓库侧钉 LF 保证
+  克隆 / 导出 / 打包三条路字节一致。两者缺一：只有前者 —— 摘要一致但包内字节仍随平台漂；
+  只有后者 —— 老克隆仍可能带着 CRLF。
+
 ---
 
 ## 九、未核对项清单（⬜ / ⚠️，不得当已验证）
